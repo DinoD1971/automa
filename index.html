@@ -185,6 +185,8 @@ try{var q=/[?&]intro\b/.test(location.search);if(!q&&(sessionStorage.getItem('au
   .flow.f2 { grid-template-columns: repeat(2, 1fr); } .flow.f6 { grid-template-columns: repeat(6, 1fr); }
   .flabel { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #7A6A55; margin-bottom: 12px; }
   .fgroup + .fgroup { border-left: 1px dashed #D6CEC0; padding-left: 24px; }
+  .loopnote { display: flex; gap: 10px; align-items: baseline; margin: 18px 0 0; font-size: 14px; line-height: 1.55; color: #45505C; background: #F5F2EC; border: 1px dashed #D6CEC0; border-radius: 6px; padding: 10px 14px; }
+  .loopnote span[aria-hidden] { color: #C77733; font-size: 18px; line-height: 1; }
   .flow .mono { font-size: 12px; color: #C77733; letter-spacing: .1em; }
   .flow h4 { font-family: 'Source Serif 4', Georgia, serif; font-size: 20px; font-weight: 600; margin: 8px 0 6px; }
   .flow p { font-size: 13.5px; line-height: 1.5; color: #6B7580; margin: 0; }
@@ -398,7 +400,7 @@ try{var q=/[?&]intro\b/.test(location.search);if(!q&&(sessionStorage.getItem('au
     </div>
 
     <div class="block">
-      <div class="sub"><h3><span data-lang="en">Idea to backlog in bulk, then production one story at a time</span><span data-lang="es">De la idea al backlog en bloque, y a producción una historia a la vez</span></h3>
+      <div class="sub"><h3><span data-lang="en">Build the backlog once, then iterate one story at a time</span><span data-lang="es">Arme el backlog una vez y luego itere una historia a la vez</span></h3>
         <p class="lead"><span data-lang="en">The pipeline runs unattended. When it needs you, it waits in your inbox while other work continues. Bugs jump the queue, and you can stop, resume, retry or reject at any point.</span><span data-lang="es">El pipeline corre de forma desatendida. Cuando lo necesita, espera en su bandeja mientras continúa otro trabajo. Los bugs pasan al frente de la cola, y usted puede detener, reanudar, reintentar o rechazar en cualquier momento.</span></p></div>
       <div id="story-mount" class="story-mount"></div>
       <div class="note"><span class="mono"><span data-lang="en">Your gates</span><span data-lang="es">Sus controles</span></span><span><span data-lang="en">Every story is approved by you before work starts, and every cloud resource and its monthly cost before it exists. Your time: a few approvals a day. The team keeps working overnight and while you are busy.</span><span data-lang="es">Usted aprueba cada historia antes de que empiece el trabajo, y cada recurso en la nube y su costo mensual antes de que exista. Su tiempo: unas pocas aprobaciones al día. El equipo sigue trabajando de noche y mientras usted está ocupado.</span></span></div>
