@@ -13,6 +13,7 @@ document.documentElement.lang=L;})();
 /* Automa intro: decide before first paint whether the splash film plays (once per visit, never with reduced motion; ?intro replays it) */
 try{var q=/[?&]intro\b/.test(location.search);if(!q&&(sessionStorage.getItem('automa-intro-seen')||matchMedia('(prefers-reduced-motion: reduce)').matches))document.documentElement.classList.add('no-intro');}catch(e){}
 </script>
+<link rel="stylesheet" href="assets/test1.css">
 <script src="./support.js"></script>
 </head>
 <body>
@@ -166,7 +167,9 @@ try{var q=/[?&]intro\b/.test(location.search);if(!q&&(sessionStorage.getItem('au
   .sub h3 { font-family: 'Source Serif 4', Georgia, serif; font-size: 30px; font-weight: 400; line-height: 1.15; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
   .block { margin-bottom: 80px; }
   .problem .cell h4, .guard h4 { font-family: 'Source Serif 4', Georgia, serif; font-size: 20px; font-weight: 600; margin: 0 0 10px; }
-  .team { display: grid; grid-template-columns: 1.15fr repeat(5, 1fr); gap: 12px; }
+  .team { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .role.reviewer { background: #F4F8FB; border-color: #C9DCEA; }
+  .role.reviewer .mono { color: #2F6E9A; }
   .role { border: 1px solid #E4DED2; border-radius: 6px; padding: 22px 20px; background: #FFFFFF; }
   .role .mono { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #C77733; margin-bottom: 10px; }
   .role h4 { font-family: 'Source Serif 4', Georgia, serif; font-size: 19px; font-weight: 600; margin: 0 0 8px; }
@@ -176,6 +179,12 @@ try{var q=/[?&]intro\b/.test(location.search);if(!q&&(sessionStorage.getItem('au
   .flow { list-style: none; margin: 0 0 24px; padding: 0; display: grid; grid-template-columns: repeat(7, 1fr); gap: 0; counter-reset: s; }
   .flow li { position: relative; padding: 22px 16px 0 0; border-top: 2px solid #D6CEC0; }
   .flow li.gate { border-top-color: #E8964A; }
+  .flow li.rgate { border-top-color: #2F6E9A; } .flow li.rgate .mono { color: #2F6E9A; }
+  .flowset { display: grid; grid-template-columns: 2fr 6fr; gap: 28px; margin-bottom: 24px; }
+  .flowset .flow { margin: 0; }
+  .flow.f2 { grid-template-columns: repeat(2, 1fr); } .flow.f6 { grid-template-columns: repeat(6, 1fr); }
+  .flabel { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #7A6A55; margin-bottom: 12px; }
+  .fgroup + .fgroup { border-left: 1px dashed #D6CEC0; padding-left: 24px; }
   .flow .mono { font-size: 12px; color: #C77733; letter-spacing: .1em; }
   .flow h4 { font-family: 'Source Serif 4', Georgia, serif; font-size: 20px; font-weight: 600; margin: 8px 0 6px; }
   .flow p { font-size: 13.5px; line-height: 1.5; color: #6B7580; margin: 0; }
@@ -244,8 +253,10 @@ try{var q=/[?&]intro\b/.test(location.search);if(!q&&(sessionStorage.getItem('au
 
   /* ---------------- responsive ---------------- */
   @media (max-width: 1080px) {
-    .team { grid-template-columns: repeat(3, 1fr); }
+    .team { grid-template-columns: repeat(2, 1fr); }
     .flow { grid-template-columns: repeat(4, 1fr); row-gap: 28px; }
+    .flowset { grid-template-columns: 1fr; gap: 24px; } .fgroup + .fgroup { border-left: 0; padding-left: 0; }
+    .flow.f6 { grid-template-columns: repeat(3, 1fr); }
   }
   @media (max-width: 960px) {
     .nav .link { display: none; }
@@ -277,9 +288,9 @@ try{var q=/[?&]intro\b/.test(location.search);if(!q&&(sessionStorage.getItem('au
     .cell { padding: 26px 22px 28px; }
     .stats { margin-bottom: 52px; }
     .stat b { font-size: 44px; }
-    .flow { grid-template-columns: 1fr; row-gap: 0; }
+    .flow, .flow.f2, .flow.f6 { grid-template-columns: 1fr; row-gap: 0; }
     .flow li { border-top: 0; border-left: 2px solid #D6CEC0; padding: 0 0 22px 20px; }
-    .flow li.gate { border-left-color: #E8964A; }
+    .flow li.gate { border-left-color: #E8964A; } .flow li.rgate { border-left-color: #2F6E9A; }
     .flow h4 { margin-top: 2px; }
     .note { grid-template-columns: 1fr; gap: 6px; }
     .phases, .proof-grid { grid-template-columns: 1fr; row-gap: 32px; }
@@ -320,6 +331,7 @@ try{var q=/[?&]intro\b/.test(location.search);if(!q&&(sessionStorage.getItem('au
       <a href="#top" class="logo"><img src="assets/automa-lockup.png" alt="Automa Consulting" /></a>
       <nav class="nav" aria-label="Main">
         <a class="link" href="#delivery"><span data-lang="en">Solution Delivery</span><span data-lang="es">Entrega de soluciones</span></a>
+        <a class="link" href="#tour-mount"><span data-lang="en">Product tour</span><span data-lang="es">Recorrido</span></a>
         <a class="link" href="#services"><span data-lang="en">Consulting</span><span data-lang="es">Consultoría</span></a>
         <a class="link" href="#method"><span data-lang="en">How we work</span><span data-lang="es">Cómo trabajamos</span></a>
         <a class="link" href="#about"><span data-lang="en">Background</span><span data-lang="es">Trayectoria</span></a>
@@ -338,6 +350,7 @@ try{var q=/[?&]intro\b/.test(location.search);if(!q&&(sessionStorage.getItem('au
     <p><span data-lang="en">Most AI programs stall between the pilot and production. Automa Consulting closes that gap — architecting agentic systems, automation, and data foundations that hold up under real governance, real security review, and real users. And now, an AI delivery team that builds your software with you approving every step that matters.</span><span data-lang="es">La mayoría de los programas de IA se estancan entre el piloto y la producción. Automa Consulting cierra esa brecha, diseñando sistemas agénticos, automatización y bases de datos que resisten gobierno real, revisiones de seguridad reales y usuarios reales. Y ahora, un equipo de entrega con IA que construye su software con su aprobación en cada paso importante.</span></p>
     <div style="display: flex; margin-top: 40px; align-items: center; gap: 14px; flex-wrap: wrap;">
       <a class="btn" href="#delivery"><span data-lang="en">Meet the AI delivery team</span><span data-lang="es">Conozca el equipo de entrega con IA</span></a>
+      <button type="button" class="btn-ghost pitch-open" data-open-pitch="1"><svg viewBox="0 0 16 16" aria-hidden="true" style="width:14px;height:14px;fill:currentColor"><path d="M4 2.2v11.6c0 .6.7 1 1.2.7l9-5.8a.8.8 0 0 0 0-1.4l-9-5.8C4.7 1.2 4 1.6 4 2.2z"/></svg><span data-lang="en">Watch the pitch</span><span data-lang="es">Ver la presentación</span></button>
       <a class="btn-ghost" href="#contact"><span data-lang="en">Email us</span><span data-lang="es">Escríbanos</span></a>
     </div>
   </section>
@@ -358,7 +371,7 @@ try{var q=/[?&]intro\b/.test(location.search);if(!q&&(sessionStorage.getItem('au
     </div>
 
     <div class="stats">
-      <div class="stat"><b>5</b><span><span data-lang="en">AI specialists on your backlog</span><span data-lang="es">especialistas de IA en su backlog</span></span></div>
+      <div class="stat"><b>7</b><span><span data-lang="en">AI specialists on your backlog</span><span data-lang="es">especialistas de IA en su backlog</span></span></div>
       <div class="stat"><b>1</b><span><span data-lang="en">owner with the keys: you</span><span data-lang="es">dueño con las llaves: usted</span></span></div>
       <div class="stat"><b>24/7</b><span><span data-lang="en">delivery, every step on the record</span><span data-lang="es">entrega, cada paso queda registrado</span></span></div>
     </div>
@@ -373,25 +386,21 @@ try{var q=/[?&]intro\b/.test(location.search);if(!q&&(sessionStorage.getItem('au
 
     <div class="block">
       <div class="sub"><h3><span data-lang="en">A complete delivery team made of AI agents</span><span data-lang="es">Un equipo de entrega completo hecho de agentes de IA</span></h3>
-        <p class="lead"><span data-lang="en">Five specialist roles work your backlog around the clock. Each is a Claude agent with a written job description and hard limits enforced in code, handing work to the next through GitHub issues and pull requests.</span><span data-lang="es">Cinco roles especializados trabajan su backlog día y noche. Cada uno es un agente de Claude con una descripción de puesto escrita y límites estrictos aplicados en código, que pasa el trabajo al siguiente mediante issues y pull requests de GitHub.</span></p></div>
+        <p class="lead"><span data-lang="en">Seven specialist roles work your backlog around the clock, in your GitHub, on your cloud. Each is a Claude agent with a written job description and hard limits enforced in code. Two reviewers are gates: nothing merges or deploys until security and code quality pass, and every gap they find is filed as a bug.</span><span data-lang="es">Siete roles especializados trabajan su backlog día y noche, en su GitHub, en su nube. Cada uno es un agente de Claude con una descripción de puesto escrita y límites estrictos aplicados en código. Dos revisores son controles: nada se integra ni se despliega hasta que pasan seguridad y calidad de código, y cada vacío que encuentran se registra como bug.</span></p></div>
       <div class="team"><div class="role owner"><div class="mono"><span data-lang="en">Owner</span><span data-lang="es">Dueño</span></div><h4><span data-lang="en">You</span><span data-lang="es">Usted</span></h4><p><span data-lang="en">Approve every story and every cloud cost. Nothing ships without you.</span><span data-lang="es">Aprueba cada historia y cada costo de nube. Nada sale sin usted.</span></p></div>
 <div class="role"><div class="mono"><span data-lang="en">AI agent</span><span data-lang="es">Agente de IA</span></div><h4><span data-lang="en">Product owner</span><span data-lang="es">Product owner</span></h4><p><span data-lang="en">Turns ideas into stories</span><span data-lang="es">Convierte ideas en historias</span></p></div>
 <div class="role"><div class="mono"><span data-lang="en">AI agent</span><span data-lang="es">Agente de IA</span></div><h4><span data-lang="en">Architect</span><span data-lang="es">Arquitecto</span></h4><p><span data-lang="en">Designs, sizes and reviews</span><span data-lang="es">Diseña, estima y revisa</span></p></div>
 <div class="role"><div class="mono"><span data-lang="en">AI agent</span><span data-lang="es">Agente de IA</span></div><h4><span data-lang="en">Developer A</span><span data-lang="es">Desarrollador A</span></h4><p><span data-lang="en">Builds in parallel with B</span><span data-lang="es">Construye en paralelo con B</span></p></div>
 <div class="role"><div class="mono"><span data-lang="en">AI agent</span><span data-lang="es">Agente de IA</span></div><h4><span data-lang="en">Developer B</span><span data-lang="es">Desarrollador B</span></h4><p><span data-lang="en">Builds in parallel with A</span><span data-lang="es">Construye en paralelo con A</span></p></div>
-<div class="role"><div class="mono"><span data-lang="en">AI agent</span><span data-lang="es">Agente de IA</span></div><h4><span data-lang="en">QA</span><span data-lang="es">QA</span></h4><p><span data-lang="en">Writes test cases and tries to break it</span><span data-lang="es">Escribe casos de prueba e intenta romperlo</span></p></div></div>
+<div class="role"><div class="mono"><span data-lang="en">AI agent</span><span data-lang="es">Agente de IA</span></div><h4><span data-lang="en">QA</span><span data-lang="es">QA</span></h4><p><span data-lang="en">Writes test cases and tries to break it</span><span data-lang="es">Escribe casos de prueba e intenta romperlo</span></p></div>
+<div class="role reviewer"><div class="mono"><span data-lang="en">AI reviewer · gate before merge</span><span data-lang="es">Revisor de IA · control antes del merge</span></div><h4><span data-lang="en">Security reviewer</span><span data-lang="es">Revisor de seguridad</span></h4><p><span data-lang="en">A gate before merge and deploy: checks every change that touches sign-in, secrets, the API, infrastructure or the database. Gaps are filed as bugs; a critical finding blocks the merge until it is fixed.</span><span data-lang="es">Un control antes del merge y el despliegue: revisa cada cambio que toca el inicio de sesión, los secretos, la API, la infraestructura o la base de datos. Los vacíos se registran como bugs; un hallazgo crítico bloquea el merge hasta que se corrige.</span></p></div>
+<div class="role reviewer"><div class="mono"><span data-lang="en">AI reviewer · gate before merge</span><span data-lang="es">Revisor de IA · control antes del merge</span></div><h4><span data-lang="en">Code quality reviewer</span><span data-lang="es">Revisor de calidad de código</span></h4><p><span data-lang="en">A gate before merge and deploy: checks the code against the team's standards, and each epic as a whole. Gaps are filed as bugs for the team to fix.</span><span data-lang="es">Un control antes del merge y el despliegue: revisa el código frente a los estándares del equipo, y cada épica completa. Los vacíos se registran como bugs para que el equipo los corrija.</span></p></div></div>
     </div>
 
     <div class="block">
-      <div class="sub"><h3><span data-lang="en">Idea to production, one story at a time</span><span data-lang="es">De la idea a producción, una historia a la vez</span></h3>
+      <div class="sub"><h3><span data-lang="en">Idea to backlog in bulk, then production one story at a time</span><span data-lang="es">De la idea al backlog en bloque, y a producción una historia a la vez</span></h3>
         <p class="lead"><span data-lang="en">The pipeline runs unattended. When it needs you, it waits in your inbox while other work continues. Bugs jump the queue, and you can stop, resume, retry or reject at any point.</span><span data-lang="es">El pipeline corre de forma desatendida. Cuando lo necesita, espera en su bandeja mientras continúa otro trabajo. Los bugs pasan al frente de la cola, y usted puede detener, reanudar, reintentar o rechazar en cualquier momento.</span></p></div>
-      <ol class="flow"><li><div class="mono">01</div><h4><span data-lang="en">Idea</span><span data-lang="es">Idea</span></h4><p><span data-lang="en">Your brief, deck or capability map</span><span data-lang="es">Su brief, presentación o mapa de capacidades</span></p></li>
-<li><div class="mono">02</div><h4><span data-lang="en">Backlog</span><span data-lang="es">Backlog</span></h4><p><span data-lang="en">Stories drafted, you groom them</span><span data-lang="es">Historias redactadas; usted las refina</span></p></li>
-<li class="gate"><div class="mono">03</div><h4><span data-lang="en">Approve</span><span data-lang="es">Aprobar</span></h4><p><span data-lang="en">You say go, story by story</span><span data-lang="es">Usted da luz verde, historia por historia</span></p></li>
-<li><div class="mono">04</div><h4><span data-lang="en">Design</span><span data-lang="es">Diseño</span></h4><p><span data-lang="en">Spec, sizing, test cases</span><span data-lang="es">Especificación, estimación, casos de prueba</span></p></li>
-<li><div class="mono">05</div><h4><span data-lang="en">Build</span><span data-lang="es">Desarrollo</span></h4><p><span data-lang="en">Code and automated tests</span><span data-lang="es">Código y pruebas automatizadas</span></p></li>
-<li><div class="mono">06</div><h4><span data-lang="en">Verify</span><span data-lang="es">Verificación</span></h4><p><span data-lang="en">QA run plus independent review</span><span data-lang="es">QA más revisión independiente</span></p></li>
-<li><div class="mono">07</div><h4><span data-lang="en">Ship</span><span data-lang="es">Lanzamiento</span></h4><p><span data-lang="en">Merge and deploy to your cloud</span><span data-lang="es">Merge y despliegue en su nube</span></p></li></ol>
+      <div id="story-mount" class="story-mount"></div>
       <div class="note"><span class="mono"><span data-lang="en">Your gates</span><span data-lang="es">Sus controles</span></span><span><span data-lang="en">Every story is approved by you before work starts, and every cloud resource and its monthly cost before it exists. Your time: a few approvals a day. The team keeps working overnight and while you are busy.</span><span data-lang="es">Usted aprueba cada historia antes de que empiece el trabajo, y cada recurso en la nube y su costo mensual antes de que exista. Su tiempo: unas pocas aprobaciones al día. El equipo sigue trabajando de noche y mientras usted está ocupado.</span></span></div>
     </div>
 
@@ -401,7 +410,7 @@ try{var q=/[?&]intro\b/.test(location.search);if(!q&&(sessionStorage.getItem('au
       <div class="cells c3"><div class="cell"><h4><span data-lang="en">You approve every story</span><span data-lang="es">Usted aprueba cada historia</span></h4><p class="body"><span data-lang="en">No work starts on anything you have not signed off.</span><span data-lang="es">No empieza ningún trabajo que usted no haya aprobado.</span></p></div>
 <div class="cell"><h4><span data-lang="en">You approve every cloud cost</span><span data-lang="es">Usted aprueba cada costo de nube</span></h4><p class="body"><span data-lang="en">Sizes and monthly cost are shown before any resource is created.</span><span data-lang="es">Se muestran tamaños y costo mensual antes de crear cualquier recurso.</span></p></div>
 <div class="cell"><h4><span data-lang="en">Rules enforced in code</span><span data-lang="es">Reglas aplicadas en código</span></h4><p class="body"><span data-lang="en">Role permissions and protected files are checked by the pipeline, with tests that try to get around them.</span><span data-lang="es">El pipeline verifica permisos por rol y archivos protegidos, con pruebas que intentan evadirlos.</span></p></div>
-<div class="cell"><h4><span data-lang="en">No self-review</span><span data-lang="es">Sin autorrevisión</span></h4><p class="body"><span data-lang="en">Code is reviewed by a different role than the one that wrote it.</span><span data-lang="es">El código lo revisa un rol distinto al que lo escribió.</span></p></div>
+<div class="cell"><h4><span data-lang="en">No self-review</span><span data-lang="es">Sin autorrevisión</span></h4><p class="body"><span data-lang="en">A different role reviews the code, and the security and quality gates must pass before it merges.</span><span data-lang="es">Lo revisa un rol distinto, y los controles de seguridad y calidad deben pasar antes del merge.</span></p></div>
 <div class="cell"><h4><span data-lang="en">Everything on the record</span><span data-lang="es">Todo queda registrado</span></h4><p class="body"><span data-lang="en">Every decision, message and run is logged in your GitHub.</span><span data-lang="es">Cada decisión, mensaje y ejecución se registra en su GitHub.</span></p></div>
 <div class="cell"><h4><span data-lang="en">Budgets on model spend</span><span data-lang="es">Presupuestos de gasto en modelos</span></h4><p class="body"><span data-lang="en">Spend is tracked per story and capped.</span><span data-lang="es">El gasto se mide por historia y tiene tope.</span></p></div></div>
     </div>
@@ -409,18 +418,7 @@ try{var q=/[?&]intro\b/.test(location.search);if(!q&&(sessionStorage.getItem('au
     <div class="block" style="margin-bottom: 0;">
       <div class="sub"><h3><span data-lang="en">One console for every project and team</span><span data-lang="es">Una consola para todos los proyectos y equipos</span></h3>
         <p class="lead"><span data-lang="en">A multi-project dashboard, one inbox for every decision, and an Agent Admin that coordinates across projects with your approval. GitHub stays the system of record, and it runs in your Azure with your choice of Claude subscription, API key or Azure AI Foundry.</span><span data-lang="es">Un tablero multiproyecto, una sola bandeja para cada decisión y un Agent Admin que coordina entre proyectos con su aprobación. GitHub sigue siendo el sistema de registro, y corre en su Azure con la opción de suscripción a Claude, clave de API o Azure AI Foundry.</span></p></div>
-      <div class="shots">
-        <figure>
-  <img data-lang="en" src="assets/console-dashboard-en.webp" width="1600" height="900" loading="lazy" alt="Automa console dashboard showing a sprint in progress" />
-  <img data-lang="es" src="assets/console-dashboard-es.webp" width="1600" height="900" loading="lazy" alt="Tablero de la consola de Automa con un sprint en curso" />
-  <figcaption><span data-lang="en"><b>Watch the team deliver.</b> Every story moves through spec, tests, build, QA, review and merge, with live activity and spend per story.</span><span data-lang="es"><b>Vea al equipo entregar.</b> Cada historia pasa por especificación, pruebas, construcción, QA, revisión y merge, con actividad en vivo y gasto por historia.</span></figcaption>
-</figure>
-        <figure>
-  <img data-lang="en" src="assets/console-inbox-en.webp" width="1600" height="900" loading="lazy" alt="Automa console inbox with approvals waiting" />
-  <img data-lang="es" src="assets/console-inbox-es.webp" width="1600" height="900" loading="lazy" alt="Bandeja de la consola de Automa con aprobaciones pendientes" />
-  <figcaption><span data-lang="en"><b>Decide from one inbox.</b> Story approvals, design choices and cost approvals, each with options and a recommendation. One click posts your decision to GitHub.</span><span data-lang="es"><b>Decida desde una sola bandeja.</b> Aprobaciones de historias, decisiones de diseño y de costos, cada una con opciones y una recomendación. Un clic publica su decisión en GitHub.</span></figcaption>
-</figure>
-      </div>
+      <div id="tour-mount" class="tour-mount"></div>
     </div>
   </section>
 
@@ -454,7 +452,7 @@ try{var q=/[?&]intro\b/.test(location.search);if(!q&&(sessionStorage.getItem('au
 <tr><th scope="row"><span data-lang="en">Pace</span><span data-lang="es">Ritmo</span></th><td><span class="ml"><span data-lang="en">Traditional team</span><span data-lang="es">Equipo tradicional</span></span><span data-lang="en">Business hours</span><span data-lang="es">Horario laboral</span></td><td class="us"><span class="ml">Automa</span><span data-lang="en">Around the clock</span><span data-lang="es">Día y noche</span></td></tr>
 <tr><th scope="row"><span data-lang="en">Cost</span><span data-lang="es">Costo</span></th><td><span class="ml"><span data-lang="en">Traditional team</span><span data-lang="es">Equipo tradicional</span></span><span data-lang="en">Salaries and rates</span><span data-lang="es">Salarios y tarifas</span></td><td class="us"><span class="ml">Automa</span><span data-lang="en">Model spend plus our fee</span><span data-lang="es">Gasto en modelos más nuestros honorarios</span></td></tr>
 <tr><th scope="row"><span data-lang="en">Visibility</span><span data-lang="es">Visibilidad</span></th><td><span class="ml"><span data-lang="en">Traditional team</span><span data-lang="es">Equipo tradicional</span></span><span data-lang="en">Status meetings</span><span data-lang="es">Reuniones de estado</span></td><td class="us"><span class="ml">Automa</span><span data-lang="en">Every step live in GitHub</span><span data-lang="es">Cada paso en vivo en GitHub</span></td></tr>
-<tr><th scope="row"><span data-lang="en">Quality</span><span data-lang="es">Calidad</span></th><td><span class="ml"><span data-lang="en">Traditional team</span><span data-lang="es">Equipo tradicional</span></span><span data-lang="en">Varies by person</span><span data-lang="es">Varía según la persona</span></td><td class="us"><span class="ml">Automa</span><span data-lang="en">Tests, QA and review on every story</span><span data-lang="es">Pruebas, QA y revisión en cada historia</span></td></tr>
+<tr><th scope="row"><span data-lang="en">Quality</span><span data-lang="es">Calidad</span></th><td><span class="ml"><span data-lang="en">Traditional team</span><span data-lang="es">Equipo tradicional</span></span><span data-lang="en">Varies by person</span><span data-lang="es">Varía según la persona</span></td><td class="us"><span class="ml">Automa</span><span data-lang="en">Tests, QA, review, and security and quality gates</span><span data-lang="es">Pruebas, QA, revisión y controles de seguridad y calidad</span></td></tr>
 <tr><th scope="row"><span data-lang="en">Control</span><span data-lang="es">Control</span></th><td><span class="ml"><span data-lang="en">Traditional team</span><span data-lang="es">Equipo tradicional</span></span><span data-lang="en">Trust the vendor</span><span data-lang="es">Confiar en el proveedor</span></td><td class="us"><span class="ml">Automa</span><span data-lang="en">You approve stories and costs</span><span data-lang="es">Usted aprueba historias y costos</span></td></tr></tbody>
       </table></div>
     </div>
@@ -589,6 +587,7 @@ try{var q=/[?&]intro\b/.test(location.search);if(!q&&(sessionStorage.getItem('au
   var n=0,t=setInterval(function(){apply(document.documentElement.lang==='es'?'es':'en');if(++n>20)clearInterval(t);},150);
 })();
 </script>
+<script src="assets/test1.js" defer></script>
 <script type="text/x-dc" data-dc-script data-props="{}"></script>
 </body>
 </html>
