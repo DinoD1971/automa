@@ -1,249 +1,594 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>
+/* Language: saved choice, then ?lang=, then the browser's languages; English unless Spanish comes first */
+(function(){var L='en';try{var q=(location.search.match(/[?&]lang=(en|es)\b/)||[])[1];var s=localStorage.getItem('automa-lang');
+if(q)L=q;else if(s==='en'||s==='es')L=s;else{var ls=navigator.languages||[navigator.language||'en'];for(var i=0;i<ls.length;i++){var c=String(ls[i]).slice(0,2).toLowerCase();if(c==='es'||c==='en'){L=c;break;}}}}catch(e){}
+document.documentElement.lang=L;})();
+</script>
+<script>
+/* Automa intro: decide before first paint whether the splash film plays (once per visit, never with reduced motion; ?intro replays it) */
+try{var q=/[?&]intro\b/.test(location.search);if(!q&&(sessionStorage.getItem('automa-intro-seen')||matchMedia('(prefers-reduced-motion: reduce)').matches))document.documentElement.classList.add('no-intro');}catch(e){}
+</script>
 <script src="./support.js"></script>
 </head>
 <body>
+<!-- Automa intro splash: plays the film full screen, then fades into the site -->
+<style>
+  #automa-intro{position:fixed;inset:0;z-index:2147483000;background:#120d09;display:flex;align-items:center;justify-content:center;transition:opacity .9s ease}
+  #automa-intro.is-leaving{opacity:0;pointer-events:none}
+  #automa-intro video{width:100%;height:100%;object-fit:cover;display:block;background:#120d09}
+  @media (max-aspect-ratio:4/3){#automa-intro video{object-fit:contain}}
+  .automa-intro-bar{position:absolute;right:max(20px,env(safe-area-inset-right));bottom:max(20px,env(safe-area-inset-bottom));display:flex;gap:10px}
+  .automa-intro-btn{font:500 13px/1 "IBM Plex Sans",system-ui,sans-serif;letter-spacing:.02em;color:#FBF9F5;background:rgba(15,26,36,.55);border:1px solid rgba(251,249,245,.28);border-radius:4px;height:38px;padding:0 16px;display:inline-flex;align-items:center;gap:8px;cursor:pointer;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+  .automa-intro-btn:hover{background:#C77733;border-color:#C77733;color:#FBF9F5}
+  .automa-intro-btn:focus-visible{outline:2px solid #E8964A;outline-offset:2px}
+  .automa-intro-btn svg{width:15px;height:15px;fill:currentColor;flex:none}
+  .automa-intro-play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:inline-flex;align-items:center;gap:14px;padding:18px 30px 18px 22px;border-radius:999px;border:1px solid rgba(251,249,245,.35);background:rgba(15,26,36,.72);color:#FBF9F5;font:500 18px/1 "IBM Plex Sans",system-ui,sans-serif;letter-spacing:.01em;cursor:pointer;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:0 20px 60px -20px rgba(0,0,0,.6);transition:background .15s,transform .15s}
+  .automa-intro-play:hover{background:#C77733;border-color:#C77733;transform:translate(-50%,-50%) scale(1.03)}
+  .automa-intro-play:focus-visible{outline:2px solid #E8964A;outline-offset:4px}
+  .automa-intro-play .ring{width:46px;height:46px;border-radius:50%;background:#FBF9F5;color:#0F1A24;display:inline-flex;align-items:center;justify-content:center;flex:none}
+  .automa-intro-play .ring svg{width:18px;height:18px;fill:currentColor;margin-left:3px}
+  .automa-intro-play small{display:block;white-space:nowrap;font-size:12px;color:#C9C2B6;margin-top:6px;letter-spacing:.04em}
+  #automa-intro.is-playing .automa-intro-play{display:none}
+  #automa-intro:not(.is-playing) #automa-intro-sound{display:none}
+  #automa-intro:not(.is-playing){cursor:pointer}
+  @media (max-width:520px){.automa-intro-play{font-size:16px;padding:14px 24px 14px 16px}.automa-intro-play .ring{width:40px;height:40px}}
+  .no-intro #automa-intro{display:none}
+  html.intro-open,html.intro-open body{overflow:hidden}
+</style>
+<div id="automa-intro" role="dialog" aria-modal="true" aria-label="Automa intro film">
+  <video id="automa-intro-video" playsinline preload="auto" poster="assets/automa-intro-poster.jpg" aria-label="A pencil sketches the Automa robot; it comes to life in color, walks to its desk and starts working.">
+    <source src="assets/automa-intro.mp4" type="video/mp4">
+    <source src="assets/automa-intro.webm" type="video/webm">
+  </video>
+  <button type="button" class="automa-intro-play" id="automa-intro-play"><span class="ring"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.2v11.6c0 .6.7 1 1.2.7l9-5.8a.8.8 0 0 0 0-1.4l-9-5.8C4.7 1.2 4 1.6 4 2.2z"/></svg></span><span><span data-lang="en">Play intro</span><span data-lang="es">Ver la intro</span><small><span data-lang="en">with sound · 34 s</span><span data-lang="es">con sonido · 34 s</span></small></span></button>
+  <div class="automa-intro-bar">
+    <button type="button" class="automa-intro-btn" id="automa-intro-sound" aria-pressed="false"></button>
+    <button type="button" class="automa-intro-btn" id="automa-intro-skip">Skip intro<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 2.6v10.8c0 .5.6.8 1 .5L11 8.5V13a1 1 0 0 0 2 0V3a1 1 0 0 0-2 0v4.5L4 2.1c-.4-.3-1 0-1 .5z"/></svg></button>
+  </div>
+</div>
+<script>
+(function(){
+  var root=document.documentElement,el=document.getElementById('automa-intro');if(!el)return;
+  if(root.classList.contains('no-intro')){el.parentNode.removeChild(el);return;}
+  var v=document.getElementById('automa-intro-video'),snd=document.getElementById('automa-intro-sound'),skip=document.getElementById('automa-intro-skip'),done=false;
+  var LBL={en:['Sound on','Sound off','Skip intro'],es:['Activar sonido','Silenciar','Omitir intro']};
+  var ICON_OFF='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M7.6 2.2 4.3 5H2a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h2.3l3.3 2.8c.4.3.9 0 .9-.4V2.6c0-.4-.5-.7-.9-.4zM11 5.5l1.5 1.5L14 5.5l1 1L13.5 8 15 9.5l-1 1L12.5 9 11 10.5l-1-1L11.5 8 10 6.5z"/></svg><span class="t"></span>';
+  var ICON_ON='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M7.6 2.2 4.3 5H2a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h2.3l3.3 2.8c.4.3.9 0 .9-.4V2.6c0-.4-.5-.7-.9-.4zM10.6 4.9a.75.75 0 0 1 1.06 0 4.4 4.4 0 0 1 0 6.2.75.75 0 1 1-1.06-1.06 2.9 2.9 0 0 0 0-4.08.75.75 0 0 1 0-1.06z"/></svg><span class="t"></span>';
+  function lbl(){var L=root.lang==='es'?'es':'en';snd.querySelector('.t').textContent=LBL[L][v.muted?0:1];skip.firstChild.nodeValue=LBL[L][2];}
+  window.automaIntroLang=function(){if(snd.isConnected)lbl();};
+  snd.innerHTML=ICON_OFF;lbl();root.classList.add('intro-open');
+  function close(){
+    if(done)return;done=true;
+    try{sessionStorage.setItem('automa-intro-seen','1')}catch(e){}
+    el.classList.add('is-leaving');root.classList.remove('intro-open');
+    document.removeEventListener('keydown',onKey);stopWake();
+    setTimeout(function(){try{v.pause()}catch(e){}if(el.parentNode)el.parentNode.removeChild(el);},950);
+  }
+  function onKey(e){if(e.key==='Escape')close();}
+  document.addEventListener('keydown',onKey);
+  skip.addEventListener('click',close);
+  v.addEventListener('ended',close);
+  var srcs=v.querySelectorAll('source');srcs[srcs.length-1].addEventListener('error',close);   /* only give up once every format has failed */
+  function showSound(){snd.setAttribute('aria-pressed',String(!v.muted));snd.innerHTML=v.muted?ICON_OFF:ICON_ON;lbl();}
+  snd.addEventListener('click',function(e){e.stopPropagation();userSet=true;v.muted=!v.muted;showSound();if(!v.muted&&v.paused)v.play();});
+  /* Browsers only allow a video to start with sound from a click or tap, so the intro waits on its first frame
+     with a Play button; the click itself starts the film, with sound. */
+  var userSet=false,play=document.getElementById('automa-intro-play');
+  function stopWake(){}
+  function start(e){
+    if(done||el.classList.contains('is-playing'))return;
+    if(e&&e.target&&e.target.closest&&e.target.closest('#automa-intro-skip,#automa-intro-sound'))return;
+    el.classList.add('is-playing');v.muted=false;showSound();
+    var q=v.play();if(q&&q.catch)q.catch(function(){v.muted=true;showSound();var q2=v.play();if(q2&&q2.catch)q2.catch(close);});
+    skip.focus({preventScroll:true});
+  }
+  play.addEventListener('click',start);
+  el.addEventListener('click',start);
+  showSound();
+})();
+</script>
 <x-dc>
 <helmet>
 <link rel="icon" href="assets/favicon.png" />
-<title>Automa Consulting — AI architecture for real delivery</title>
+<title>Automa Consulting — AI architecture and AI solution delivery</title>
+<meta name="description" content="AI architecture, automation and AI delivery teams that plan, build, test and ship your software, with you approving every step that matters." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
-<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet" />
 <style>
   html { scroll-behavior: smooth; }
   body { margin: 0; background: #FBF9F5; color: #0F1A24; font-family: "IBM Plex Sans", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
   * { box-sizing: border-box; }
   a { color: #0F1A24; text-decoration: none; }
   a:hover { color: #C77733; }
+  img { max-width: 100%; }
+
+  /* ---- language: show the strings that match <html lang> ---- */
+  html:not([lang="es"]) [data-lang="es"], html[lang="es"] [data-lang="en"] { display: none !important; }
+
+  /* ---- shared building blocks ---- */
+  .wrap { max-width: 1160px; margin: 0 auto; padding-left: max(40px, env(safe-area-inset-left)); padding-right: max(40px, env(safe-area-inset-right)); }
+  .eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #7A6A55; margin-bottom: 18px; }
+  .dark .eyebrow { color: #9A8E7C; }
+  .h2 { font-family: 'Source Serif 4', Georgia, serif; font-size: 42px; line-height: 1.1; font-weight: 400; margin: 0; letter-spacing: -0.015em; text-wrap: balance; }
+  .h3 { font-family: 'Source Serif 4', Georgia, serif; font-size: 22px; font-weight: 600; margin: 0 0 12px; line-height: 1.25; }
+  .lead { font-size: 17px; line-height: 1.65; color: #6B7580; margin: 0; max-width: 40em; }
+  .dark .lead { color: #A9B3BE; }
+  .body { font-size: 15px; line-height: 1.6; color: #6B7580; margin: 0; }
+  .mono { font-family: 'IBM Plex Mono', monospace; }
+  .num { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #C77733; margin-bottom: 20px; }
+  .split { display: grid; grid-template-columns: 0.8fr 1.2fr; gap: 72px; margin-bottom: 56px; align-items: end; }
+  .cells { display: grid; gap: 1px; background: #E4DED2; border: 1px solid #E4DED2; border-radius: 6px; overflow: hidden; }
+  .cells > * { background: #FBF9F5; }
+  .cell { padding: 34px 30px 38px; transition: background .15s; }
+  .cell:hover { background: #FFFFFF; }
+  .c2 { grid-template-columns: repeat(2, 1fr); } .c3 { grid-template-columns: repeat(3, 1fr); } .c4 { grid-template-columns: repeat(4, 1fr); }
+  .dark { background: #0F1A24; color: #F4EFE6; }
+  .btn { display: inline-flex; align-items: center; gap: 10px; background: #0F1A24; color: #FBF9F5; padding: 15px 28px; border-radius: 4px; font-size: 15px; font-weight: 500; transition: background .15s; }
+  .btn:hover { background: #C77733; color: #FBF9F5; }
+  .btn-ghost { display: inline-flex; align-items: center; gap: 10px; padding: 15px 24px; border: 1px solid #D6CEC0; border-radius: 4px; font-size: 15px; color: #45505C; }
+  .btn-ghost:hover { border-color: #0F1A24; color: #0F1A24; }
+  a:focus-visible, button:focus-visible { outline: 2px solid #E8964A; outline-offset: 3px; }
+
+  /* header */
+  .site-header { position: sticky; top: 0; z-index: 20; background: rgba(251,249,245,0.92); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); border-bottom: 1px solid #E4DED2; }
+  .site-header .wrap { padding-top: 18px; padding-bottom: 18px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+  .logo img { height: 46px; width: auto; display: block; }
+  .nav { display: flex; align-items: center; gap: 28px; font-size: 14px; letter-spacing: 0.02em; }
+  .nav .link { color: #4A5560; }
+  .nav .cta { display: inline-flex; align-items: center; background: #0F1A24; color: #FBF9F5; padding: 11px 20px; border-radius: 4px; font-weight: 500; white-space: nowrap; }
+  .nav .cta:hover { background: #C77733; color: #FBF9F5; }
+  .lang { display: inline-flex; border: 1px solid #D6CEC0; border-radius: 4px; overflow: hidden; }
+  .lang button { appearance: none; border: 0; background: transparent; font: 500 12px/1 'IBM Plex Mono', monospace; letter-spacing: .08em; color: #6B7580; padding: 9px 10px; cursor: pointer; }
+  .lang button + button { border-left: 1px solid #D6CEC0; }
+  html:not([lang="es"]) .lang [data-set-lang="en"], html[lang="es"] .lang [data-set-lang="es"] { background: #0F1A24; color: #FBF9F5; }
+
+  /* hero */
+  .hero { padding-top: 112px; padding-bottom: 104px; }
+  .hero h1 { font-family: 'Source Serif 4', Georgia, serif; font-size: 62px; line-height: 1.06; letter-spacing: -0.02em; font-weight: 400; margin: 0 0 28px; text-wrap: balance; max-width: 860px; }
+  .hero p { font-size: 19px; line-height: 1.6; color: #45505C; max-width: 34em; margin: 0; text-wrap: pretty; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: #E8964A; display: block; }
+  .strip { border-top: 1px solid #E4DED2; border-bottom: 1px solid #E4DED2; background: #F5F2EC; }
+  .strip .wrap { padding-top: 26px; padding-bottom: 26px; display: flex; align-items: center; gap: 16px 40px; flex-wrap: wrap; font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: #7A6A55; }
+
+  /* solution delivery */
+  .sec { padding-top: 96px; padding-bottom: 88px; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: #E4DED2; border: 1px solid #E4DED2; border-radius: 6px; overflow: hidden; margin-bottom: 72px; }
+  .stat { background: #FBF9F5; padding: 28px 30px; display: flex; align-items: baseline; gap: 18px; }
+  .stat b { font-family: 'Source Serif 4', Georgia, serif; font-weight: 400; font-size: 52px; line-height: 1; color: #0F1A24; font-variant-numeric: tabular-nums; }
+  .stat span { font-size: 15px; line-height: 1.45; color: #45505C; }
+  .sub { display: grid; grid-template-columns: 0.8fr 1.2fr; gap: 72px; margin: 0 0 32px; align-items: end; }
+  .sub h3 { font-family: 'Source Serif 4', Georgia, serif; font-size: 30px; font-weight: 400; line-height: 1.15; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+  .block { margin-bottom: 80px; }
+  .problem .cell h4, .guard h4 { font-family: 'Source Serif 4', Georgia, serif; font-size: 20px; font-weight: 600; margin: 0 0 10px; }
+  .team { display: grid; grid-template-columns: 1.15fr repeat(5, 1fr); gap: 12px; }
+  .role { border: 1px solid #E4DED2; border-radius: 6px; padding: 22px 20px; background: #FFFFFF; }
+  .role .mono { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #C77733; margin-bottom: 10px; }
+  .role h4 { font-family: 'Source Serif 4', Georgia, serif; font-size: 19px; font-weight: 600; margin: 0 0 8px; }
+  .role p { font-size: 14px; line-height: 1.5; color: #6B7580; margin: 0; }
+  .role.owner { background: #0F1A24; border-color: #0F1A24; }
+  .role.owner h4 { color: #FBF9F5; } .role.owner p { color: #A9B3BE; } .role.owner .mono { color: #E8964A; }
+  .flow { list-style: none; margin: 0 0 24px; padding: 0; display: grid; grid-template-columns: repeat(7, 1fr); gap: 0; counter-reset: s; }
+  .flow li { position: relative; padding: 22px 16px 0 0; border-top: 2px solid #D6CEC0; }
+  .flow li.gate { border-top-color: #E8964A; }
+  .flow .mono { font-size: 12px; color: #C77733; letter-spacing: .1em; }
+  .flow h4 { font-family: 'Source Serif 4', Georgia, serif; font-size: 20px; font-weight: 600; margin: 8px 0 6px; }
+  .flow p { font-size: 13.5px; line-height: 1.5; color: #6B7580; margin: 0; }
+  .note { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: start; background: #F5F2EC; border: 1px solid #E4DED2; border-radius: 6px; padding: 18px 22px; font-size: 15px; line-height: 1.6; color: #45505C; }
+  .note .mono { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #C77733; padding-top: 4px; white-space: nowrap; }
+  .guard .cell { padding: 28px 26px 30px; }
+  .shots { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .shots figure { margin: 0; }
+  .shots img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; border-radius: 8px; border: 1px solid #E4DED2; box-shadow: 0 18px 40px -24px rgba(15,26,36,.35); background: #F5F2EC; }
+  .shots figcaption { font-size: 14px; color: #6B7580; margin-top: 12px; line-height: 1.5; }
+  .shots figcaption b { color: #0F1A24; font-weight: 600; }
+  .preview-tag { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #9A8E7C; margin-top: 16px; }
+
+  /* proof */
+  .proof .wrap { padding-top: 92px; padding-bottom: 96px; }
+  .proof-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 36px; margin-bottom: 40px; }
+  .proof-grid > div { border-top: 2px solid #2C3A47; padding-top: 22px; }
+  .proof-grid > div:first-child { border-top-color: #E8964A; }
+  .proof-grid b { display: block; font-family: 'Source Serif 4', Georgia, serif; font-weight: 400; font-size: 54px; line-height: 1; color: #FBF9F5; margin-bottom: 12px; font-variant-numeric: tabular-nums; }
+  .proof-grid span { font-size: 15px; line-height: 1.5; color: #A9B3BE; }
+  .x200 { display: grid; grid-template-columns: auto 1fr; gap: 28px; align-items: center; border: 1px solid #2C3A47; border-radius: 6px; padding: 26px 30px; margin-bottom: 22px; }
+  .x200 b { font-family: 'Source Serif 4', Georgia, serif; font-weight: 400; font-size: 60px; line-height: 1; color: #E8964A; }
+  .x200 span { font-size: 17px; line-height: 1.55; color: #E6E0D6; }
+  .fine { font-size: 13px; line-height: 1.6; color: #7E8894; margin: 0; max-width: 60em; }
+
+  /* comparison + offers */
+  .table-wrap { overflow-x: auto; border: 1px solid #E4DED2; border-radius: 6px; -webkit-overflow-scrolling: touch; }
+  table.compare { width: 100%; border-collapse: collapse; min-width: 560px; font-size: 15px; }
+  .compare th, .compare td { text-align: left; padding: 16px 22px; border-bottom: 1px solid #E4DED2; vertical-align: top; line-height: 1.5; }
+  .compare tr:last-child td { border-bottom: 0; }
+  .compare thead th { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #7A6A55; background: #F5F2EC; font-weight: 500; }
+  .compare tbody th { font-weight: 600; color: #0F1A24; width: 20%; }
+  .compare td { color: #6B7580; }
+  .compare td.us { color: #0F1A24; background: #FFFFFF; font-weight: 500; }
+  .compare thead th.us { color: #C77733; }
+  .offers .cell h4 { font-family: 'Source Serif 4', Georgia, serif; font-size: 22px; font-weight: 600; margin: 0 0 10px; }
+  .offers .cell.lead-offer { background: #FFFFFF; box-shadow: inset 0 3px 0 #E8964A; }
+  .tag { display: inline-block; font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: #C77733; border: 1px solid #EBC9A6; border-radius: 3px; padding: 3px 7px; margin-bottom: 14px; }
+  .also { font-size: 15px; line-height: 1.6; color: #45505C; margin: 22px 0 0; }
+
+  /* method */
+  .phases { display: grid; grid-template-columns: repeat(4, 1fr); gap: 36px; }
+  .phase { border-top: 2px solid #2C3A47; padding-top: 24px; }
+  .phase:first-child { border-top-color: #E8964A; }
+  .phase .mono { font-size: 12px; letter-spacing: 0.12em; color: #E8964A; margin-bottom: 16px; }
+  .phase h3 { font-family: 'Source Serif 4', Georgia, serif; font-size: 26px; font-weight: 400; margin: 0 0 14px; }
+  .phase p { font-size: 15px; line-height: 1.6; color: #A9B3BE; margin: 0 0 16px; }
+  .phase .out { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #7E8894; }
+
+  /* background */
+  .about-grid { display: grid; grid-template-columns: 0.85fr 1.15fr; gap: 80px; align-items: start; }
+  .facts > div { padding: 28px 26px; }
+  .facts .mono { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: #7A6A55; margin-bottom: 12px; }
+  .facts p { font-size: 15px; line-height: 1.55; color: #45505C; margin: 0; }
+
+  /* contact + footer */
+  .contact { border-top: 1px solid #E4DED2; background: #F5F2EC; }
+  .contact .wrap { padding-top: 88px; padding-bottom: 92px; display: grid; grid-template-columns: 1fr auto; gap: 64px; align-items: center; }
+  .mailcard { display: inline-flex; flex-direction: column; gap: 8px; background: #0F1A24; color: #FBF9F5; padding: 28px 36px; border-radius: 6px; min-width: 320px; transition: background .15s; }
+  .mailcard:hover { background: #C77733; color: #FBF9F5; }
+  .site-footer { background: #0F1A24; color: #A9B3BE; }
+  .site-footer .cols { padding-top: 56px; padding-bottom: 56px; display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 48px; align-items: start; }
+  .site-footer .col { display: grid; gap: 12px; font-size: 14px; }
+  .site-footer .col a { color: #A9B3BE; } .site-footer .col a:hover { color: #E8964A; }
+  .site-footer .h { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: #7E8894; margin-bottom: 4px; }
+
+  /* ---------------- responsive ---------------- */
+  @media (max-width: 1080px) {
+    .team { grid-template-columns: repeat(3, 1fr); }
+    .flow { grid-template-columns: repeat(4, 1fr); row-gap: 28px; }
+  }
+  @media (max-width: 960px) {
+    .nav .link { display: none; }
+    .split, .sub, .about-grid { grid-template-columns: 1fr; gap: 20px; }
+    .c3, .c4 { grid-template-columns: repeat(2, 1fr); }
+    .span3 { grid-column: span 2 !important; }
+    .phases, .proof-grid { grid-template-columns: repeat(2, 1fr); row-gap: 40px; }
+    .contact .wrap { grid-template-columns: 1fr; gap: 32px; }
+    .site-footer .cols { grid-template-columns: 1fr 1fr; }
+    .site-footer .cols > :first-child { grid-column: 1 / -1; }
+  }
+  @media (max-width: 640px) {
+    .wrap { padding-left: max(20px, env(safe-area-inset-left)); padding-right: max(20px, env(safe-area-inset-right)); }
+    .site-header .wrap { padding-top: 12px; padding-bottom: 12px; gap: 12px; }
+    .logo img { height: 34px; }
+    .nav { gap: 10px; }
+    .nav .cta { padding: 9px 13px; font-size: 13px; }
+    .hero { padding-top: 64px; padding-bottom: 64px; }
+    .hero h1 { font-size: 40px; }
+    .hero p { font-size: 17px; }
+    .sec { padding-top: 64px; padding-bottom: 56px; }
+    .h2 { font-size: 32px; }
+    .sub h3 { font-size: 25px; }
+    .split { margin-bottom: 36px; }
+    .block { margin-bottom: 56px; }
+    .c2, .c3, .c4, .stats, .shots, .team { grid-template-columns: 1fr; }
+    .span3 { grid-column: auto !important; }
+    .span3.cell { display: block !important; }
+    .cell { padding: 26px 22px 28px; }
+    .stats { margin-bottom: 52px; }
+    .stat b { font-size: 44px; }
+    .flow { grid-template-columns: 1fr; row-gap: 0; }
+    .flow li { border-top: 0; border-left: 2px solid #D6CEC0; padding: 0 0 22px 20px; }
+    .flow li.gate { border-left-color: #E8964A; }
+    .flow h4 { margin-top: 2px; }
+    .note { grid-template-columns: 1fr; gap: 6px; }
+    .phases, .proof-grid { grid-template-columns: 1fr; row-gap: 32px; }
+    .proof .wrap { padding-top: 64px; padding-bottom: 68px; }
+    .proof-grid b { font-size: 46px; }
+    .x200 { grid-template-columns: 1fr; gap: 10px; padding: 22px; }
+    .x200 b { font-size: 50px; }
+    .contact .wrap { padding-top: 64px; padding-bottom: 68px; }
+    .contact h2 { font-size: 34px !important; }
+    .mailcard { min-width: 0; width: 100%; padding: 22px 24px; }
+    .mailcard .addr { font-size: 20px !important; word-break: break-word; }
+    .site-footer .cols { grid-template-columns: 1fr; gap: 32px; padding-top: 44px; padding-bottom: 44px; }
+  }
+  .ml { display: none; }
+  @media (max-width: 640px) {
+    .table-wrap { overflow: visible; border: 0; }
+    table.compare { min-width: 0; display: block; }
+    .compare thead { display: none; }
+    .compare tbody { display: grid; gap: 10px; }
+    .compare tr { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid #E4DED2; border-radius: 6px; overflow: hidden; }
+    .compare tbody th { grid-column: 1 / -1; width: auto; background: #F5F2EC; padding: 12px 16px; border-bottom: 1px solid #E4DED2; }
+    .compare td { padding: 12px 16px; border-bottom: 0; font-size: 14px; }
+    .compare td.us { border-left: 1px solid #E4DED2; }
+    .ml { display: block; font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: #9A8E7C; margin-bottom: 4px; font-weight: 400; }
+    .compare td.us .ml { color: #C77733; }
+  }
+  @media (max-width: 380px) {
+    .nav .cta { display: none; }
+    .hero h1 { font-size: 34px; }
+  }
 </style>
 </helmet>
 
 <div style="width: 100%; background: #FBF9F5; overflow-x: hidden;">
 
-  <header style="position: sticky; top: 0; z-index: 20; background: rgba(251,249,245,0.92); backdrop-filter: blur(8px); border-bottom: 1px solid #E4DED2;">
-    <div style="max-width: 1160px; margin: 0 auto; padding: 18px 40px; display: flex; align-items: center; justify-content: space-between; gap: 32px;">
-      <a href="#top" style="display: flex; align-items: center;">
-        <img src="assets/automa-lockup.png" alt="Automa Consulting" style="height: 46px; width: auto; display: block;" />
-      </a>
-      <nav style="display: flex; align-items: center; gap: 32px; font-size: 14px; letter-spacing: 0.02em;">
-        <a href="#services" style="color: #4A5560;">Services</a>
-        <a href="#method" style="color: #4A5560;">How we work</a>
-        <a href="#about" style="color: #4A5560;">Background</a>
-        <a href="#contact" style="display: inline-flex; align-items: center; gap: 8px; background: #0F1A24; color: #FBF9F5; padding: 11px 20px; border-radius: 4px; font-weight: 500;" style-hover="background: #C77733;">Start a conversation</a>
+  <header class="site-header">
+    <div class="wrap">
+      <a href="#top" class="logo"><img src="assets/automa-lockup.png" alt="Automa Consulting" /></a>
+      <nav class="nav" aria-label="Main">
+        <a class="link" href="#delivery"><span data-lang="en">Solution Delivery</span><span data-lang="es">Entrega de soluciones</span></a>
+        <a class="link" href="#services"><span data-lang="en">Consulting</span><span data-lang="es">Consultoría</span></a>
+        <a class="link" href="#method"><span data-lang="en">How we work</span><span data-lang="es">Cómo trabajamos</span></a>
+        <a class="link" href="#about"><span data-lang="en">Background</span><span data-lang="es">Trayectoria</span></a>
+        <div class="lang" role="group" aria-label="Language / Idioma">
+          <button type="button" data-set-lang="en" lang="en" aria-label="English">EN</button>
+          <button type="button" data-set-lang="es" lang="es" aria-label="Español">ES</button>
+        </div>
+        <a class="cta" href="#contact"><span data-lang="en">Start a conversation</span><span data-lang="es">Conversemos</span></a>
       </nav>
     </div>
   </header>
 
-  <section id="top" style="max-width: 1160px; margin: 0 auto; padding: 112px 40px 104px;">
-    <div style="max-width: 860px;">
-      <div style="display: inline-flex; align-items: center; gap: 10px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #7A6A55; margin-bottom: 28px;">
-        <span style="width: 7px; height: 7px; border-radius: 50%; background: #E8964A; display: block;"></span>
-        AI architecture practice
-      </div>
-      <h1 style="font-family: 'Source Serif 4', Georgia, serif; font-size: 62px; line-height: 1.06; letter-spacing: -0.02em; font-weight: 400; margin: 0 0 28px; text-wrap: pretty;">
-        AI that survives contact with your enterprise.
-      </h1>
-      <p style="font-size: 19px; line-height: 1.6; color: #45505C; max-width: 34em; margin: 0 0 20px; text-wrap: pretty;">
-        Most AI programs stall between the pilot and production. Automa Consulting closes that gap — architecting agentic systems, automation, and data foundations that hold up under real governance, real security review, and real users.
-      </p>
-      <div style="display: flex; margin-top: 40px; align-items: center; gap: 16px; flex-wrap: wrap;">
-        <a href="#contact" style="display: inline-flex; align-items: center; gap: 10px; background: #0F1A24; color: #FBF9F5; padding: 15px 28px; border-radius: 4px; font-size: 15px; font-weight: 500;" style-hover="background: #C77733;">Email us</a>
-        <a href="#method" style="display: inline-flex; align-items: center; gap: 10px; padding: 15px 24px; border: 1px solid #D6CEC0; border-radius: 4px; font-size: 15px; color: #45505C;" style-hover="border-color: #0F1A24; color: #0F1A24;">See how we work</a>
-      </div>
-    </div>
-
-  </section>
-
-  <section style="border-top: 1px solid #E4DED2; border-bottom: 1px solid #E4DED2; background: #F5F2EC;">
-    <div style="max-width: 1160px; margin: 0 auto; padding: 26px 40px; display: flex; align-items: center; gap: 40px; flex-wrap: wrap; font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: #7A6A55;">
-      <span>Azure AI Foundry</span>
-      <span>Microsoft Copilot</span>
-      <span>Anthropic Claude</span>
-      <span>OpenAI</span>
-      <span>Agentic orchestration</span>
-      <span>Enterprise integration</span>
+  <section id="top" class="wrap hero">
+    <div class="eyebrow" style="display: inline-flex; align-items: center; gap: 10px; margin-bottom: 28px;"><span class="dot"></span><span data-lang="en">AI architecture &amp; solution delivery</span><span data-lang="es">Arquitectura de IA y entrega de soluciones</span></div>
+    <h1><span data-lang="en">AI that survives contact with your enterprise.</span><span data-lang="es">IA que sobrevive al contacto con su empresa.</span></h1>
+    <p><span data-lang="en">Most AI programs stall between the pilot and production. Automa Consulting closes that gap — architecting agentic systems, automation, and data foundations that hold up under real governance, real security review, and real users. And now, an AI delivery team that builds your software with you approving every step that matters.</span><span data-lang="es">La mayoría de los programas de IA se estancan entre el piloto y la producción. Automa Consulting cierra esa brecha, diseñando sistemas agénticos, automatización y bases de datos que resisten gobierno real, revisiones de seguridad reales y usuarios reales. Y ahora, un equipo de entrega con IA que construye su software con su aprobación en cada paso importante.</span></p>
+    <div style="display: flex; margin-top: 40px; align-items: center; gap: 14px; flex-wrap: wrap;">
+      <a class="btn" href="#delivery"><span data-lang="en">Meet the AI delivery team</span><span data-lang="es">Conozca el equipo de entrega con IA</span></a>
+      <a class="btn-ghost" href="#contact"><span data-lang="en">Email us</span><span data-lang="es">Escríbanos</span></a>
     </div>
   </section>
 
-  <section id="services" style="max-width: 1160px; margin: 0 auto; padding: 96px 40px 88px;">
-    <div style="display: grid; grid-template-columns: 0.8fr 1.2fr; gap: 72px; margin-bottom: 56px; align-items: end;">
+  <section class="strip" aria-label="Platforms">
+    <div class="wrap">
+      <span>Azure AI Foundry</span><span>Microsoft Copilot</span><span>Anthropic Claude</span><span>OpenAI</span><span><span data-lang="en">Agentic orchestration</span><span data-lang="es">Orquestación agéntica</span></span><span><span data-lang="en">Enterprise integration</span><span data-lang="es">Integración empresarial</span></span>
+    </div>
+  </section>
+
+  <section id="delivery" class="wrap sec">
+    <div class="split">
       <div>
-        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #7A6A55; margin-bottom: 18px;">01 — Services</div>
-        <h2 style="font-family: 'Source Serif 4', Georgia, serif; font-size: 42px; line-height: 1.1; font-weight: 400; margin: 0; letter-spacing: -0.015em;">Where we're useful</h2>
+        <div class="eyebrow">01 — Automa Solution Delivery</div>
+        <h2 class="h2"><span data-lang="en">Your software team, on autopilot</span><span data-lang="es">Su equipo de software, en piloto automático</span></h2>
       </div>
-      <p style="font-size: 17px; line-height: 1.65; color: #6B7580; margin: 0; max-width: 40em;">
-        Engagements are scoped small and deliberately: a decision to make, a system to design, a team to bring along. We work alongside your architects and engineers, not around them.
-      </p>
+      <p class="lead"><span data-lang="en">AI delivery teams that plan, build, test and ship your product, in your GitHub and on your cloud. You stay the owner: you approve the stories and every cloud cost. Everything else, the team does.</span><span data-lang="es">Equipos de entrega con IA que planifican, construyen, prueban y lanzan su producto, en su GitHub y en su nube. Usted sigue siendo el dueño: aprueba las historias y cada costo de nube. Todo lo demás lo hace el equipo.</span></p>
     </div>
 
-    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: #E4DED2; border: 1px solid #E4DED2; border-radius: 6px; overflow: hidden;">
-      <div style="background: #FBF9F5; padding: 34px 30px 38px;" style-hover="background: #FFFFFF;">
-        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #C77733; margin-bottom: 20px;">/01</div>
-        <h3 style="font-family: 'Source Serif 4', Georgia, serif; font-size: 22px; font-weight: 600; margin: 0 0 12px; line-height: 1.25;">AI strategy &amp; roadmapping</h3>
-        <p style="font-size: 15px; line-height: 1.6; color: #6B7580; margin: 0;">A target-state architecture and sequenced roadmap that names which use cases earn investment now, which wait, and what has to be true before either ships.</p>
+    <div class="stats">
+      <div class="stat"><b>5</b><span><span data-lang="en">AI specialists on your backlog</span><span data-lang="es">especialistas de IA en su backlog</span></span></div>
+      <div class="stat"><b>1</b><span><span data-lang="en">owner with the keys: you</span><span data-lang="es">dueño con las llaves: usted</span></span></div>
+      <div class="stat"><b>24/7</b><span><span data-lang="en">delivery, every step on the record</span><span data-lang="es">entrega, cada paso queda registrado</span></span></div>
+    </div>
+
+    <div class="block problem">
+      <div class="sub"><h3><span data-lang="en">Software takes too long and costs too much</span><span data-lang="es">El software tarda demasiado y cuesta demasiado</span></h3>
+        <p class="lead"><span data-lang="en">Most teams have a product idea and a budget. The bottleneck is the team: finding it, paying for it, and knowing what it is actually doing.</span><span data-lang="es">La mayoría de los equipos tiene una idea de producto y un presupuesto. El cuello de botella es el equipo: encontrarlo, pagarlo y saber qué está haciendo realmente.</span></p></div>
+      <div class="cells c3"><div class="cell"><h4><span data-lang="en">Slow to start</span><span data-lang="es">Lento para arrancar</span></h4><p class="body"><span data-lang="en">Weeks to hire or contract a team before the first line of code is written.</span><span data-lang="es">Semanas para contratar un equipo antes de escribir la primera línea de código.</span></p></div>
+<div class="cell"><h4><span data-lang="en">Expensive to run</span><span data-lang="es">Costoso de operar</span></h4><p class="body"><span data-lang="en">Even offshore, a small product team costs tens of thousands of dollars a month.</span><span data-lang="es">Incluso offshore, un equipo de producto pequeño cuesta decenas de miles de dólares al mes.</span></p></div>
+<div class="cell"><h4><span data-lang="en">Hard to see</span><span data-lang="es">Difícil de ver</span></h4><p class="body"><span data-lang="en">Status lives in meetings and slide decks, not in the work. Surprises arrive late.</span><span data-lang="es">El estado vive en reuniones y presentaciones, no en el trabajo. Las sorpresas llegan tarde.</span></p></div></div>
+    </div>
+
+    <div class="block">
+      <div class="sub"><h3><span data-lang="en">A complete delivery team made of AI agents</span><span data-lang="es">Un equipo de entrega completo hecho de agentes de IA</span></h3>
+        <p class="lead"><span data-lang="en">Five specialist roles work your backlog around the clock. Each is a Claude agent with a written job description and hard limits enforced in code, handing work to the next through GitHub issues and pull requests.</span><span data-lang="es">Cinco roles especializados trabajan su backlog día y noche. Cada uno es un agente de Claude con una descripción de puesto escrita y límites estrictos aplicados en código, que pasa el trabajo al siguiente mediante issues y pull requests de GitHub.</span></p></div>
+      <div class="team"><div class="role owner"><div class="mono"><span data-lang="en">Owner</span><span data-lang="es">Dueño</span></div><h4><span data-lang="en">You</span><span data-lang="es">Usted</span></h4><p><span data-lang="en">Approve every story and every cloud cost. Nothing ships without you.</span><span data-lang="es">Aprueba cada historia y cada costo de nube. Nada sale sin usted.</span></p></div>
+<div class="role"><div class="mono"><span data-lang="en">AI agent</span><span data-lang="es">Agente de IA</span></div><h4><span data-lang="en">Product owner</span><span data-lang="es">Product owner</span></h4><p><span data-lang="en">Turns ideas into stories</span><span data-lang="es">Convierte ideas en historias</span></p></div>
+<div class="role"><div class="mono"><span data-lang="en">AI agent</span><span data-lang="es">Agente de IA</span></div><h4><span data-lang="en">Architect</span><span data-lang="es">Arquitecto</span></h4><p><span data-lang="en">Designs, sizes and reviews</span><span data-lang="es">Diseña, estima y revisa</span></p></div>
+<div class="role"><div class="mono"><span data-lang="en">AI agent</span><span data-lang="es">Agente de IA</span></div><h4><span data-lang="en">Developer A</span><span data-lang="es">Desarrollador A</span></h4><p><span data-lang="en">Builds in parallel with B</span><span data-lang="es">Construye en paralelo con B</span></p></div>
+<div class="role"><div class="mono"><span data-lang="en">AI agent</span><span data-lang="es">Agente de IA</span></div><h4><span data-lang="en">Developer B</span><span data-lang="es">Desarrollador B</span></h4><p><span data-lang="en">Builds in parallel with A</span><span data-lang="es">Construye en paralelo con A</span></p></div>
+<div class="role"><div class="mono"><span data-lang="en">AI agent</span><span data-lang="es">Agente de IA</span></div><h4><span data-lang="en">QA</span><span data-lang="es">QA</span></h4><p><span data-lang="en">Writes test cases and tries to break it</span><span data-lang="es">Escribe casos de prueba e intenta romperlo</span></p></div></div>
+    </div>
+
+    <div class="block">
+      <div class="sub"><h3><span data-lang="en">Idea to production, one story at a time</span><span data-lang="es">De la idea a producción, una historia a la vez</span></h3>
+        <p class="lead"><span data-lang="en">The pipeline runs unattended. When it needs you, it waits in your inbox while other work continues. Bugs jump the queue, and you can stop, resume, retry or reject at any point.</span><span data-lang="es">El pipeline corre de forma desatendida. Cuando lo necesita, espera en su bandeja mientras continúa otro trabajo. Los bugs pasan al frente de la cola, y usted puede detener, reanudar, reintentar o rechazar en cualquier momento.</span></p></div>
+      <ol class="flow"><li><div class="mono">01</div><h4><span data-lang="en">Idea</span><span data-lang="es">Idea</span></h4><p><span data-lang="en">Your brief, deck or capability map</span><span data-lang="es">Su brief, presentación o mapa de capacidades</span></p></li>
+<li><div class="mono">02</div><h4><span data-lang="en">Backlog</span><span data-lang="es">Backlog</span></h4><p><span data-lang="en">Stories drafted, you groom them</span><span data-lang="es">Historias redactadas; usted las refina</span></p></li>
+<li class="gate"><div class="mono">03</div><h4><span data-lang="en">Approve</span><span data-lang="es">Aprobar</span></h4><p><span data-lang="en">You say go, story by story</span><span data-lang="es">Usted da luz verde, historia por historia</span></p></li>
+<li><div class="mono">04</div><h4><span data-lang="en">Design</span><span data-lang="es">Diseño</span></h4><p><span data-lang="en">Spec, sizing, test cases</span><span data-lang="es">Especificación, estimación, casos de prueba</span></p></li>
+<li><div class="mono">05</div><h4><span data-lang="en">Build</span><span data-lang="es">Desarrollo</span></h4><p><span data-lang="en">Code and automated tests</span><span data-lang="es">Código y pruebas automatizadas</span></p></li>
+<li><div class="mono">06</div><h4><span data-lang="en">Verify</span><span data-lang="es">Verificación</span></h4><p><span data-lang="en">QA run plus independent review</span><span data-lang="es">QA más revisión independiente</span></p></li>
+<li><div class="mono">07</div><h4><span data-lang="en">Ship</span><span data-lang="es">Lanzamiento</span></h4><p><span data-lang="en">Merge and deploy to your cloud</span><span data-lang="es">Merge y despliegue en su nube</span></p></li></ol>
+      <div class="note"><span class="mono"><span data-lang="en">Your gates</span><span data-lang="es">Sus controles</span></span><span><span data-lang="en">Every story is approved by you before work starts, and every cloud resource and its monthly cost before it exists. Your time: a few approvals a day. The team keeps working overnight and while you are busy.</span><span data-lang="es">Usted aprueba cada historia antes de que empiece el trabajo, y cada recurso en la nube y su costo mensual antes de que exista. Su tiempo: unas pocas aprobaciones al día. El equipo sigue trabajando de noche y mientras usted está ocupado.</span></span></div>
+    </div>
+
+    <div class="block guard">
+      <div class="sub"><h3><span data-lang="en">Autonomous team, guardrails you control</span><span data-lang="es">Equipo autónomo, salvaguardas que usted controla</span></h3>
+        <p class="lead"><span data-lang="en">The guardrails are not instructions the agents could ignore. The pipeline enforces them, and it has tests that try to get around them.</span><span data-lang="es">Las salvaguardas no son instrucciones que los agentes puedan ignorar. El pipeline las aplica, y tiene pruebas que intentan evadirlas.</span></p></div>
+      <div class="cells c3"><div class="cell"><h4><span data-lang="en">You approve every story</span><span data-lang="es">Usted aprueba cada historia</span></h4><p class="body"><span data-lang="en">No work starts on anything you have not signed off.</span><span data-lang="es">No empieza ningún trabajo que usted no haya aprobado.</span></p></div>
+<div class="cell"><h4><span data-lang="en">You approve every cloud cost</span><span data-lang="es">Usted aprueba cada costo de nube</span></h4><p class="body"><span data-lang="en">Sizes and monthly cost are shown before any resource is created.</span><span data-lang="es">Se muestran tamaños y costo mensual antes de crear cualquier recurso.</span></p></div>
+<div class="cell"><h4><span data-lang="en">Rules enforced in code</span><span data-lang="es">Reglas aplicadas en código</span></h4><p class="body"><span data-lang="en">Role permissions and protected files are checked by the pipeline, with tests that try to get around them.</span><span data-lang="es">El pipeline verifica permisos por rol y archivos protegidos, con pruebas que intentan evadirlos.</span></p></div>
+<div class="cell"><h4><span data-lang="en">No self-review</span><span data-lang="es">Sin autorrevisión</span></h4><p class="body"><span data-lang="en">Code is reviewed by a different role than the one that wrote it.</span><span data-lang="es">El código lo revisa un rol distinto al que lo escribió.</span></p></div>
+<div class="cell"><h4><span data-lang="en">Everything on the record</span><span data-lang="es">Todo queda registrado</span></h4><p class="body"><span data-lang="en">Every decision, message and run is logged in your GitHub.</span><span data-lang="es">Cada decisión, mensaje y ejecución se registra en su GitHub.</span></p></div>
+<div class="cell"><h4><span data-lang="en">Budgets on model spend</span><span data-lang="es">Presupuestos de gasto en modelos</span></h4><p class="body"><span data-lang="en">Spend is tracked per story and capped.</span><span data-lang="es">El gasto se mide por historia y tiene tope.</span></p></div></div>
+    </div>
+
+    <div class="block" style="margin-bottom: 0;">
+      <div class="sub"><h3><span data-lang="en">One console for every project and team</span><span data-lang="es">Una consola para todos los proyectos y equipos</span></h3>
+        <p class="lead"><span data-lang="en">A multi-project dashboard, one inbox for every decision, and an Agent Admin that coordinates across projects with your approval. GitHub stays the system of record, and it runs in your Azure with your choice of Claude subscription, API key or Azure AI Foundry.</span><span data-lang="es">Un tablero multiproyecto, una sola bandeja para cada decisión y un Agent Admin que coordina entre proyectos con su aprobación. GitHub sigue siendo el sistema de registro, y corre en su Azure con la opción de suscripción a Claude, clave de API o Azure AI Foundry.</span></p></div>
+      <div class="shots">
+        <figure>
+  <img data-lang="en" src="assets/console-dashboard-en.webp" width="1600" height="900" loading="lazy" alt="Automa console dashboard showing a sprint in progress" />
+  <img data-lang="es" src="assets/console-dashboard-es.webp" width="1600" height="900" loading="lazy" alt="Tablero de la consola de Automa con un sprint en curso" />
+  <figcaption><span data-lang="en"><b>Watch the team deliver.</b> Every story moves through spec, tests, build, QA, review and merge, with live activity and spend per story.</span><span data-lang="es"><b>Vea al equipo entregar.</b> Cada historia pasa por especificación, pruebas, construcción, QA, revisión y merge, con actividad en vivo y gasto por historia.</span></figcaption>
+</figure>
+        <figure>
+  <img data-lang="en" src="assets/console-inbox-en.webp" width="1600" height="900" loading="lazy" alt="Automa console inbox with approvals waiting" />
+  <img data-lang="es" src="assets/console-inbox-es.webp" width="1600" height="900" loading="lazy" alt="Bandeja de la consola de Automa con aprobaciones pendientes" />
+  <figcaption><span data-lang="en"><b>Decide from one inbox.</b> Story approvals, design choices and cost approvals, each with options and a recommendation. One click posts your decision to GitHub.</span><span data-lang="es"><b>Decida desde una sola bandeja.</b> Aprobaciones de historias, decisiones de diseño y de costos, cada una con opciones y una recomendación. Un clic publica su decisión en GitHub.</span></figcaption>
+</figure>
       </div>
-      <div style="background: #FBF9F5; padding: 34px 30px 38px;" style-hover="background: #FFFFFF;">
-        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #C77733; margin-bottom: 20px;">/02</div>
-        <h3 style="font-family: 'Source Serif 4', Georgia, serif; font-size: 22px; font-weight: 600; margin: 0 0 12px; line-height: 1.25;">Process automation</h3>
-        <p style="font-size: 15px; line-height: 1.6; color: #6B7580; margin: 0;">Agentic and workflow automation applied where the work actually is — document handling, intake, review queues, handoffs between systems that were never designed to talk.</p>
-      </div>
-      <div style="background: #FBF9F5; padding: 34px 30px 38px;" style-hover="background: #FFFFFF;">
-        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #C77733; margin-bottom: 20px;">/03</div>
-        <h3 style="font-family: 'Source Serif 4', Georgia, serif; font-size: 22px; font-weight: 600; margin: 0 0 12px; line-height: 1.25;">Custom AI builds</h3>
-        <p style="font-size: 15px; line-height: 1.6; color: #6B7580; margin: 0;">Multi-agent systems designed for the failure modes that matter: hallucination, silent omission, drift. Validator agents, human-in-the-loop review, and feedback capture as first-class design elements.</p>
-      </div>
-      <div style="background: #FBF9F5; padding: 34px 30px 38px;" style-hover="background: #FFFFFF;">
-        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #C77733; margin-bottom: 20px;">/04</div>
-        <h3 style="font-family: 'Source Serif 4', Georgia, serif; font-size: 22px; font-weight: 600; margin: 0 0 12px; line-height: 1.25;">Data readiness &amp; infrastructure</h3>
-        <p style="font-size: 15px; line-height: 1.6; color: #6B7580; margin: 0;">The unglamorous prerequisite. Integration patterns, pipelines, retrieval design, and governance guardrails that make your data safe to point a model at.</p>
-      </div>
-      <div style="background: #FBF9F5; padding: 34px 30px 38px;" style-hover="background: #FFFFFF;">
-        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #C77733; margin-bottom: 20px;">/05</div>
-        <h3 style="font-family: 'Source Serif 4', Georgia, serif; font-size: 22px; font-weight: 600; margin: 0 0 12px; line-height: 1.25;">Team training &amp; enablement</h3>
-        <p style="font-size: 15px; line-height: 1.6; color: #6B7580; margin: 0;">AI across the delivery lifecycle — design generation, code generation, code review, test creation — taught to engineering teams as practice, with the guardrails that keep it honest.</p>
-      </div>
-      <div style="background: #FBF9F5; padding: 34px 30px 38px;" style-hover="background: #FFFFFF;">
-        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #C77733; margin-bottom: 20px;">/06</div>
-        <h3 style="font-family: 'Source Serif 4', Georgia, serif; font-size: 22px; font-weight: 600; margin: 0 0 12px; line-height: 1.25;">Fractional AI leadership</h3>
-        <p style="font-size: 15px; line-height: 1.6; color: #6B7580; margin: 0;">Senior architectural judgment on retainer: design reviews, architecture governance, and the standing authority to say no to the wrong build.</p>
-      </div>
-      <div style="background: #FBF9F5; padding: 34px 30px 38px; grid-column: span 3; display: grid; grid-template-columns: 1fr 1.6fr; gap: 40px; align-items: center;" style-hover="background: #FFFFFF;">
+    </div>
+  </section>
+
+  <section class="dark proof" aria-labelledby="proof-h">
+    <div class="wrap">
+      <div class="split">
         <div>
-          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #C77733; margin-bottom: 20px;">/07</div>
-          <h3 style="font-family: 'Source Serif 4', Georgia, serif; font-size: 22px; font-weight: 600; margin: 0; line-height: 1.25;">Vendor selection &amp; due diligence</h3>
+          <div class="eyebrow"><span data-lang="en">Proof</span><span data-lang="es">Prueba</span></div>
+          <h2 class="h2" id="proof-h"><span data-lang="en">Automa is building itself</span><span data-lang="es">Automa se construye a sí mismo</span></h2>
         </div>
-        <p style="font-size: 15px; line-height: 1.6; color: #6B7580; margin: 0;">Independent evaluation of platforms, models, and AI vendors — including the line between user-assistive AI and architected enterprise systems, so you don't buy a copilot licence to solve an orchestration problem.</p>
+        <p class="lead"><span data-lang="en">The console that runs many projects at once is being built by the same delivery pipeline it runs. These are the numbers from its GitHub record.</span><span data-lang="es">La consola que opera muchos proyectos a la vez la está construyendo el mismo pipeline de entrega que opera. Estas son las cifras de su registro en GitHub.</span></p>
+      </div>
+      <div class="proof-grid">
+        <div><b>52</b><span><span data-lang="en">work items delivered in 5.4 days</span><span data-lang="es">ítems de trabajo entregados en 5.4 días</span></span></div>
+        <div><b>5,625</b><span><span data-lang="en">automated tests, written and passing</span><span data-lang="es">pruebas automatizadas, escritas y aprobadas</span></span></div>
+        <div><b>167k</b><span><span data-lang="en">lines delivered (60k product, 107k test)</span><span data-lang="es">líneas entregadas (60k producto, 107k pruebas)</span></span></div>
+        <div><b>$541</b><span><span data-lang="en">model spend at list API prices</span><span data-lang="es">de gasto en modelos a precios de lista de API</span></span></div>
+      </div>
+      <div class="x200"><b>$112,729</b><span><span data-lang="en">cost avoided by choosing Automa over a human team at $50 an hour, for the same 52 items: about 210 times less.</span><span data-lang="es">de costo evitado al elegir Automa frente a un equipo humano a US$50/h (52 ítems): unas 210 veces menos.</span></span></div>
+      <p class="fine"><span data-lang="en">Stories, bugs and fixes on the Automa harness repository as of 17 October 2026: 39 stories and 13 bugs, taken from its GitHub record. A second client product is being delivered on the same pipeline. Human estimate: 2,265 hours at $50, counting coding time only. Neither figure includes owner time or cloud hosting.</span><span data-lang="es">Historias, bugs y correcciones en el repositorio del harness de Automa al 17 de octubre de 2026: 39 historias y 13 bugs, según su registro en GitHub. Un segundo producto de cliente se está entregando con el mismo pipeline. Estimación humana: 2,265 horas a US$50, contando solo el tiempo de programación. Ninguna cifra incluye el tiempo del dueño ni el hosting en la nube.</span></p>
+    </div>
+  </section>
+
+  <section class="wrap sec" aria-labelledby="why-h">
+    <div class="block">
+      <div class="sub"><h3 id="why-h"><span data-lang="en">Why Automa</span><span data-lang="es">Por qué Automa</span></h3>
+        <p class="lead"><span data-lang="en">The AI does the work; you make the decisions.</span><span data-lang="es">La IA hace el trabajo; usted toma las decisiones.</span></p></div>
+      <div class="table-wrap"><table class="compare">
+        <thead><tr><th scope="col"><span class="sr"></span></th><th scope="col"><span data-lang="en">Traditional team</span><span data-lang="es">Equipo tradicional</span></th><th scope="col" class="us">Automa</th></tr></thead>
+        <tbody><tr><th scope="row"><span data-lang="en">Start</span><span data-lang="es">Arranque</span></th><td><span class="ml"><span data-lang="en">Traditional team</span><span data-lang="es">Equipo tradicional</span></span><span data-lang="en">Weeks to staff up</span><span data-lang="es">Semanas para armar el equipo</span></td><td class="us"><span class="ml">Automa</span><span data-lang="en">First story in days</span><span data-lang="es">Primera historia en días</span></td></tr>
+<tr><th scope="row"><span data-lang="en">Pace</span><span data-lang="es">Ritmo</span></th><td><span class="ml"><span data-lang="en">Traditional team</span><span data-lang="es">Equipo tradicional</span></span><span data-lang="en">Business hours</span><span data-lang="es">Horario laboral</span></td><td class="us"><span class="ml">Automa</span><span data-lang="en">Around the clock</span><span data-lang="es">Día y noche</span></td></tr>
+<tr><th scope="row"><span data-lang="en">Cost</span><span data-lang="es">Costo</span></th><td><span class="ml"><span data-lang="en">Traditional team</span><span data-lang="es">Equipo tradicional</span></span><span data-lang="en">Salaries and rates</span><span data-lang="es">Salarios y tarifas</span></td><td class="us"><span class="ml">Automa</span><span data-lang="en">Model spend plus our fee</span><span data-lang="es">Gasto en modelos más nuestros honorarios</span></td></tr>
+<tr><th scope="row"><span data-lang="en">Visibility</span><span data-lang="es">Visibilidad</span></th><td><span class="ml"><span data-lang="en">Traditional team</span><span data-lang="es">Equipo tradicional</span></span><span data-lang="en">Status meetings</span><span data-lang="es">Reuniones de estado</span></td><td class="us"><span class="ml">Automa</span><span data-lang="en">Every step live in GitHub</span><span data-lang="es">Cada paso en vivo en GitHub</span></td></tr>
+<tr><th scope="row"><span data-lang="en">Quality</span><span data-lang="es">Calidad</span></th><td><span class="ml"><span data-lang="en">Traditional team</span><span data-lang="es">Equipo tradicional</span></span><span data-lang="en">Varies by person</span><span data-lang="es">Varía según la persona</span></td><td class="us"><span class="ml">Automa</span><span data-lang="en">Tests, QA and review on every story</span><span data-lang="es">Pruebas, QA y revisión en cada historia</span></td></tr>
+<tr><th scope="row"><span data-lang="en">Control</span><span data-lang="es">Control</span></th><td><span class="ml"><span data-lang="en">Traditional team</span><span data-lang="es">Equipo tradicional</span></span><span data-lang="en">Trust the vendor</span><span data-lang="es">Confiar en el proveedor</span></td><td class="us"><span class="ml">Automa</span><span data-lang="en">You approve stories and costs</span><span data-lang="es">Usted aprueba historias y costos</span></td></tr></tbody>
+      </table></div>
+    </div>
+    <div class="offers">
+      <div class="sub"><h3><span data-lang="en">Four ways to work with Automa</span><span data-lang="es">Cuatro formas de trabajar con Automa</span></h3>
+        <p class="lead"><span data-lang="en">Start with a pilot sprint: bring an idea, leave with working, tested software.</span><span data-lang="es">Empiece con un sprint piloto: traiga una idea y llévese software funcional y probado.</span></p></div>
+      <div class="cells c4"><div class="cell lead-offer"><div class="tag"><span data-lang="en">Start here</span><span data-lang="es">Empiece aquí</span></div><h4><span data-lang="en">Pilot sprint</span><span data-lang="es">Sprint piloto</span></h4><p class="body"><span data-lang="en">A fixed-scope first sprint on your idea. Working, tested software in your GitHub in days.</span><span data-lang="es">Un primer sprint de alcance fijo sobre su idea. Software funcional y probado en su GitHub en días.</span></p></div>
+<div class="cell"><h4><span data-lang="en">Solution delivery</span><span data-lang="es">Entrega de soluciones</span></h4><p class="body"><span data-lang="en">We run the Automa team on your product end to end, from capability map to production.</span><span data-lang="es">Operamos el equipo de Automa en su producto de punta a punta, del mapa de capacidades a producción.</span></p></div>
+<div class="cell"><h4><span data-lang="en">Automa in your Azure</span><span data-lang="es">Automa en su Azure</span></h4><p class="body"><span data-lang="en">We set up the harness in your subscription and train your owner to run it. Suits strict data or IP policies.</span><span data-lang="es">Instalamos el harness en su suscripción y capacitamos a su dueño para operarlo. Ideal para políticas estrictas de datos o propiedad intelectual.</span></p></div>
+<div class="cell"><h4><span data-lang="en">Managed delivery</span><span data-lang="es">Entrega gestionada</span></h4><p class="body"><span data-lang="en">Ongoing roadmap delivery and support, with a named human lead and monthly review.</span><span data-lang="es">Entrega continua del roadmap y soporte, con un líder humano designado y revisión mensual.</span></p></div></div>
+      <div style="display: flex; margin-top: 32px; gap: 14px; flex-wrap: wrap;">
+        <a class="btn" href="mailto:info@automaconsulting.com?subject=Pilot%20sprint"><span data-lang="en">Scope a pilot sprint</span><span data-lang="es">Defina un sprint piloto</span></a>
       </div>
     </div>
   </section>
 
-  <section id="method" style="background: #0F1A24; color: #F4EFE6;">
-    <div style="max-width: 1160px; margin: 0 auto; padding: 96px 40px 100px;">
-      <div style="display: grid; grid-template-columns: 0.8fr 1.2fr; gap: 72px; margin-bottom: 64px; align-items: end;">
+  <section id="services" class="wrap sec" style="border-top: 1px solid #E4DED2;">
+    <div class="split">
+      <div>
+        <div class="eyebrow"><span data-lang="en">02 — Consulting</span><span data-lang="es">02 — Consultoría</span></div>
+        <h2 class="h2"><span data-lang="en">Where we're useful</span><span data-lang="es">Dónde aportamos</span></h2>
+      </div>
+      <p class="lead"><span data-lang="en">Engagements are scoped small and deliberately: a decision to make, a system to design, a team to bring along. We work alongside your architects and engineers, not around them.</span><span data-lang="es">Los proyectos se definen pequeños y a propósito: una decisión que tomar, un sistema que diseñar, un equipo que acompañar. Trabajamos junto a sus arquitectos e ingenieros, no a su alrededor.</span></p>
+    </div>
+    <div class="cells c3">
+      <div class="cell"><div class="num">/01</div><h3 class="h3"><span data-lang="en">AI strategy &amp; roadmapping</span><span data-lang="es">Estrategia y hoja de ruta de IA</span></h3><p class="body"><span data-lang="en">A target-state architecture and sequenced roadmap that names which use cases earn investment now, which wait, and what has to be true before either ships.</span><span data-lang="es">Una arquitectura objetivo y una hoja de ruta secuenciada que indica qué casos de uso merecen inversión ahora, cuáles esperan y qué debe cumplirse antes de lanzar cualquiera.</span></p></div>
+<div class="cell"><div class="num">/02</div><h3 class="h3"><span data-lang="en">Process automation</span><span data-lang="es">Automatización de procesos</span></h3><p class="body"><span data-lang="en">Agentic and workflow automation applied where the work actually is — document handling, intake, review queues, handoffs between systems that were never designed to talk.</span><span data-lang="es">Automatización agéntica y de flujos aplicada donde realmente está el trabajo: manejo de documentos, recepción, colas de revisión y traspasos entre sistemas que nunca se diseñaron para comunicarse.</span></p></div>
+<div class="cell"><div class="num">/03</div><h3 class="h3"><span data-lang="en">Custom AI builds</span><span data-lang="es">Desarrollos de IA a la medida</span></h3><p class="body"><span data-lang="en">Multi-agent systems designed for the failure modes that matter: hallucination, silent omission, drift. Validator agents, human-in-the-loop review, and feedback capture as first-class design elements.</span><span data-lang="es">Sistemas multiagente diseñados para los modos de falla que importan: alucinación, omisión silenciosa y deriva. Agentes validadores, revisión humana en el ciclo y captura de retroalimentación como elementos centrales del diseño.</span></p></div>
+<div class="cell"><div class="num">/04</div><h3 class="h3"><span data-lang="en">Data readiness &amp; infrastructure</span><span data-lang="es">Preparación de datos e infraestructura</span></h3><p class="body"><span data-lang="en">The unglamorous prerequisite. Integration patterns, pipelines, retrieval design, and governance guardrails that make your data safe to point a model at.</span><span data-lang="es">El requisito poco glamoroso. Patrones de integración, pipelines, diseño de recuperación y controles de gobierno que hacen que sus datos sean seguros para un modelo.</span></p></div>
+<div class="cell"><div class="num">/05</div><h3 class="h3"><span data-lang="en">Team training &amp; enablement</span><span data-lang="es">Capacitación y habilitación de equipos</span></h3><p class="body"><span data-lang="en">AI across the delivery lifecycle — design generation, code generation, code review, test creation — taught to engineering teams as practice, with the guardrails that keep it honest.</span><span data-lang="es">IA en todo el ciclo de entrega (generación de diseños, generación de código, revisión de código y creación de pruebas) enseñada a equipos de ingeniería como práctica, con las salvaguardas que la mantienen honesta.</span></p></div>
+<div class="cell"><div class="num">/06</div><h3 class="h3"><span data-lang="en">Fractional AI leadership</span><span data-lang="es">Liderazgo fraccional de IA</span></h3><p class="body"><span data-lang="en">Senior architectural judgment on retainer: design reviews, architecture governance, and the standing authority to say no to the wrong build.</span><span data-lang="es">Criterio arquitectónico sénior bajo contrato: revisiones de diseño, gobierno de arquitectura y la autoridad permanente para decir no al desarrollo equivocado.</span></p></div>
+      <div class="cell span3" style="grid-column: span 3; display: grid; grid-template-columns: 1fr 1.6fr; gap: 40px; align-items: center;">
+        <div><div class="num">/07</div><h3 class="h3" style="margin: 0;"><span data-lang="en">Vendor selection &amp; due diligence</span><span data-lang="es">Selección de proveedores y debida diligencia</span></h3></div>
+        <p class="body"><span data-lang="en">Independent evaluation of platforms, models, and AI vendors — including the line between user-assistive AI and architected enterprise systems, so you don't buy a copilot licence to solve an orchestration problem.</span><span data-lang="es">Evaluación independiente de plataformas, modelos y proveedores de IA, incluida la frontera entre la IA de asistencia al usuario y los sistemas empresariales diseñados, para que no compre una licencia de copiloto para resolver un problema de orquestación.</span></p>
+      </div>
+    </div>
+  </section>
+
+  <section id="method" class="dark">
+    <div class="wrap sec" style="padding-bottom: 100px;">
+      <div class="split" style="margin-bottom: 64px;">
         <div>
-          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #9A8E7C; margin-bottom: 18px;">02 — How we work</div>
-          <h2 style="font-family: 'Source Serif 4', Georgia, serif; font-size: 42px; line-height: 1.1; font-weight: 400; margin: 0; letter-spacing: -0.015em;">Four phases, no theatre</h2>
+          <div class="eyebrow"><span data-lang="en">03 — How we work</span><span data-lang="es">03 — Cómo trabajamos</span></div>
+          <h2 class="h2"><span data-lang="en">Four phases, no theatre</span><span data-lang="es">Cuatro fases, sin teatro</span></h2>
         </div>
-        <p style="font-size: 17px; line-height: 1.65; color: #A9B3BE; margin: 0; max-width: 40em;">
-          Every engagement produces something you can act on without us. Architecture decisions get written down, with the reasoning and the alternatives that were rejected.
-        </p>
+        <p class="lead"><span data-lang="en">Every engagement produces something you can act on without us. Architecture decisions get written down, with the reasoning and the alternatives that were rejected.</span><span data-lang="es">Cada proyecto produce algo sobre lo que usted puede actuar sin nosotros. Las decisiones de arquitectura quedan por escrito, con el razonamiento y las alternativas descartadas.</span></p>
       </div>
+      <div class="phases"><div class="phase"><div class="mono"><span data-lang="en">PHASE</span><span data-lang="es">FASE</span> 01</div><h3><span data-lang="en">Diagnose</span><span data-lang="es">Diagnóstico</span></h3><p><span data-lang="en">Two to three weeks with your stakeholders, systems, and data. We map the current state and the constraints — budget, risk, security, and the people who have to run it.</span><span data-lang="es">Dos a tres semanas con sus interesados, sistemas y datos. Mapeamos el estado actual y las restricciones: presupuesto, riesgo, seguridad y las personas que deben operarlo.</span></p><div class="out"><span data-lang="en">Output: findings &amp; opportunity map</span><span data-lang="es">Resultado: hallazgos y mapa de oportunidades</span></div></div>
+<div class="phase"><div class="mono"><span data-lang="en">PHASE</span><span data-lang="es">FASE</span> 02</div><h3><span data-lang="en">Architect</span><span data-lang="es">Arquitectura</span></h3><p><span data-lang="en">Target-state design: agents, data flows, integration boundaries, security posture, and governance. Sequenced so the first increment is small enough to be real.</span><span data-lang="es">Diseño objetivo: agentes, flujos de datos, límites de integración, postura de seguridad y gobierno. Secuenciado para que el primer incremento sea lo bastante pequeño para ser real.</span></p><div class="out"><span data-lang="en">Output: target architecture &amp; roadmap</span><span data-lang="es">Resultado: arquitectura objetivo y hoja de ruta</span></div></div>
+<div class="phase"><div class="mono"><span data-lang="en">PHASE</span><span data-lang="es">FASE</span> 03</div><h3><span data-lang="en">Prove</span><span data-lang="es">Prueba</span></h3><p><span data-lang="en">Build the increment with your team — or with the Automa delivery team. Instrument it, measure accuracy and reviewer burden, and let the pilot's failure modes change the design before scale does.</span><span data-lang="es">Construimos el incremento con su equipo, o con el equipo de entrega de Automa. Lo instrumentamos, medimos la precisión y la carga de revisión, y dejamos que los modos de falla del piloto cambien el diseño antes de escalar.</span></p><div class="out"><span data-lang="en">Output: working system &amp; evidence</span><span data-lang="es">Resultado: sistema funcional y evidencia</span></div></div>
+<div class="phase"><div class="mono"><span data-lang="en">PHASE</span><span data-lang="es">FASE</span> 04</div><h3><span data-lang="en">Transfer</span><span data-lang="es">Transferencia</span></h3><p><span data-lang="en">Standards, guardrails, scorecards, and coaching, so your architects own the next one. We'd rather be a phone call than a dependency.</span><span data-lang="es">Estándares, salvaguardas, indicadores y acompañamiento, para que sus arquitectos se apropien del siguiente. Preferimos ser una llamada a una dependencia.</span></p><div class="out"><span data-lang="en">Output: standards &amp; enabled team</span><span data-lang="es">Resultado: estándares y equipo habilitado</span></div></div></div>
+    </div>
+  </section>
 
-      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 36px;">
-        <div style="border-top: 2px solid #E8964A; padding-top: 24px;">
-          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 0.12em; color: #E8964A; margin-bottom: 16px;">PHASE 01</div>
-          <h3 style="font-family: 'Source Serif 4', Georgia, serif; font-size: 26px; font-weight: 400; margin: 0 0 14px;">Diagnose</h3>
-          <p style="font-size: 15px; line-height: 1.6; color: #A9B3BE; margin: 0 0 16px;">Two to three weeks with your stakeholders, systems, and data. We map the current state and the constraints — budget, risk, security, and the people who have to run it.</p>
-          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #7E8894;">Output: findings &amp; opportunity map</div>
-        </div>
-        <div style="border-top: 2px solid #2C3A47; padding-top: 24px;">
-          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 0.12em; color: #E8964A; margin-bottom: 16px;">PHASE 02</div>
-          <h3 style="font-family: 'Source Serif 4', Georgia, serif; font-size: 26px; font-weight: 400; margin: 0 0 14px;">Architect</h3>
-          <p style="font-size: 15px; line-height: 1.6; color: #A9B3BE; margin: 0 0 16px;">Target-state design: agents, data flows, integration boundaries, security posture, and governance. Sequenced so the first increment is small enough to be real.</p>
-          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #7E8894;">Output: target architecture &amp; roadmap</div>
-        </div>
-        <div style="border-top: 2px solid #2C3A47; padding-top: 24px;">
-          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 0.12em; color: #E8964A; margin-bottom: 16px;">PHASE 03</div>
-          <h3 style="font-family: 'Source Serif 4', Georgia, serif; font-size: 26px; font-weight: 400; margin: 0 0 14px;">Prove</h3>
-          <p style="font-size: 15px; line-height: 1.6; color: #A9B3BE; margin: 0 0 16px;">Build the increment with your team. Instrument it, measure accuracy and reviewer burden, and let the pilot's failure modes change the design before scale does.</p>
-          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #7E8894;">Output: working system &amp; evidence</div>
-        </div>
-        <div style="border-top: 2px solid #2C3A47; padding-top: 24px;">
-          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 0.12em; color: #E8964A; margin-bottom: 16px;">PHASE 04</div>
-          <h3 style="font-family: 'Source Serif 4', Georgia, serif; font-size: 26px; font-weight: 400; margin: 0 0 14px;">Transfer</h3>
-          <p style="font-size: 15px; line-height: 1.6; color: #A9B3BE; margin: 0 0 16px;">Standards, guardrails, scorecards, and coaching, so your architects own the next one. We'd rather be a phone call than a dependency.</p>
-          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #7E8894;">Output: standards &amp; enabled team</div>
-        </div>
+  <section id="about" class="wrap sec">
+    <div class="about-grid">
+      <div>
+        <div class="eyebrow"><span data-lang="en">04 — Background</span><span data-lang="es">04 — Trayectoria</span></div>
+        <h2 class="h2" style="margin: 0 0 24px;"><span data-lang="en">Two decades of enterprise architecture, pointed at AI</span><span data-lang="es">Dos décadas de arquitectura empresarial, enfocadas en IA</span></h2>
+        <p style="font-size: 16px; line-height: 1.7; color: #6B7580; margin: 0;"><span data-lang="en">Automa was founded on a simple observation: the hard part of enterprise AI is rarely the model. It is integration, data, security review, and the organizational patience to get something into production and keep it there.</span><span data-lang="es">Automa nació de una observación simple: lo difícil de la IA empresarial rara vez es el modelo. Es la integración, los datos, la revisión de seguridad y la paciencia organizacional para llevar algo a producción y mantenerlo ahí.</span></p>
+      </div>
+      <div>
+        <p style="font-size: 19px; line-height: 1.6; color: #2A3542; margin: 0 0 20px; text-wrap: pretty;"><span data-lang="en">Our practice was built on the unglamorous side of technology — integration architecture, data platforms, enterprise applications, and the governance around them — across manufacturing, retail, agriculture, and multi-site operations at national scale.</span><span data-lang="es">Nuestra práctica se construyó en el lado poco glamoroso de la tecnología (arquitectura de integración, plataformas de datos, aplicaciones empresariales y su gobierno) en manufactura, comercio minorista, agricultura y operaciones multisitio a escala nacional.</span></p>
+        <p style="font-size: 16px; line-height: 1.7; color: #6B7580; margin: 0 0 40px;"><span data-lang="en">That background shows up in how we advise: conservative where risk is real, ambitious where it can afford to be, and specific about what has to be true before an AI initiative deserves funding. We have carried multi-million-dollar technology portfolios, rationalized them, led delivery teams through modernization, and shipped agentic AI to production — including the validator patterns, human-in-the-loop review, and feedback capture that keep it trustworthy once real users arrive.</span><span data-lang="es">Esa trayectoria se nota en cómo asesoramos: conservadores donde el riesgo es real, ambiciosos donde se puede, y específicos sobre lo que debe cumplirse antes de que una iniciativa de IA merezca financiamiento. Hemos gestionado portafolios tecnológicos multimillonarios, los hemos racionalizado, hemos liderado equipos de entrega en procesos de modernización y hemos llevado IA agéntica a producción, incluidos los patrones de validación, la revisión humana en el ciclo y la captura de retroalimentación que la mantienen confiable cuando llegan los usuarios reales.</span></p>
+        <div class="cells c2 facts"><div><div class="mono"><span data-lang="en">Platform depth</span><span data-lang="es">Profundidad de plataforma</span></div><p><span data-lang="en">Certified Azure solutions architecture, plus hands-on delivery on Azure AI Foundry, Claude, and OpenAI models.</span><span data-lang="es">Arquitectura de soluciones Azure certificada, más entrega práctica en Azure AI Foundry, Claude y modelos de OpenAI.</span></p></div>
+<div><div class="mono"><span data-lang="en">Production experience</span><span data-lang="es">Experiencia en producción</span></div><p><span data-lang="en">Multi-agent systems live in production, not slideware — designed around the failure modes pilots expose.</span><span data-lang="es">Sistemas multiagente en producción, no en diapositivas, diseñados en torno a los modos de falla que exponen los pilotos.</span></p></div>
+<div><div class="mono"><span data-lang="en">Enterprise fluency</span><span data-lang="es">Dominio empresarial</span></div><p><span data-lang="en">Comfortable in front of security, procurement, and finance — the reviews where most AI projects actually die.</span><span data-lang="es">Cómodos frente a seguridad, compras y finanzas: las revisiones donde realmente mueren la mayoría de los proyectos de IA.</span></p></div>
+<div><div class="mono"><span data-lang="en">Team enablement</span><span data-lang="es">Habilitación de equipos</span></div><p><span data-lang="en">A track record of coaching architects and engineers through AI adoption across the delivery lifecycle.</span><span data-lang="es">Trayectoria acompañando a arquitectos e ingenieros en la adopción de IA a lo largo del ciclo de entrega.</span></p></div></div>
       </div>
     </div>
   </section>
 
-  <section id="about" style="max-width: 1160px; margin: 0 auto; padding: 96px 40px 88px;">
-    <div style="display: grid; grid-template-columns: 0.85fr 1.15fr; gap: 80px; align-items: start;">
+  <section id="contact" class="contact">
+    <div class="wrap">
       <div>
-        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #7A6A55; margin-bottom: 18px;">03 &mdash; Background</div>
-        <h2 style="font-family: 'Source Serif 4', Georgia, serif; font-size: 42px; line-height: 1.1; font-weight: 400; margin: 0 0 24px; letter-spacing: -0.015em; text-wrap: pretty;">Two decades of enterprise architecture, pointed at AI</h2>
-        <p style="font-size: 16px; line-height: 1.7; color: #6B7580; margin: 0;">
-          Automa was founded on a simple observation: the hard part of enterprise AI is rarely the model. It is integration, data, security review, and the organizational patience to get something into production and keep it there.
-        </p>
+        <div class="eyebrow"><span data-lang="en">05 — Contact</span><span data-lang="es">05 — Contacto</span></div>
+        <h2 class="h2" style="font-size: 44px; margin: 0 0 20px;"><span data-lang="en">Bring us the problem you can't sequence.</span><span data-lang="es">Tráiganos el problema que no logra ordenar.</span></h2>
+        <p class="lead" style="max-width: 36em;"><span data-lang="en">A short note about what you're trying to build — or what stalled — is enough to start. Or bring an idea for a pilot sprint. First conversations are free and usually clarifying either way.</span><span data-lang="es">Basta una nota breve sobre lo que quiere construir, o lo que se estancó, para empezar. O traiga una idea para un sprint piloto. La primera conversación es gratis y casi siempre aclara las cosas.</span></p>
       </div>
-      <div>
-        <p style="font-size: 19px; line-height: 1.6; color: #2A3542; margin: 0 0 20px; text-wrap: pretty;">
-          Our practice was built on the unglamorous side of technology &mdash; integration architecture, data platforms, enterprise applications, and the governance around them &mdash; across manufacturing, retail, agriculture, and multi-site operations at national scale.
-        </p>
-        <p style="font-size: 16px; line-height: 1.7; color: #6B7580; margin: 0 0 40px;">
-          That background shows up in how we advise: conservative where risk is real, ambitious where it can afford to be, and specific about what has to be true before an AI initiative deserves funding. We have carried multi-million-dollar technology portfolios, rationalized them, led delivery teams through modernization, and shipped agentic AI to production &mdash; including the validator patterns, human-in-the-loop review, and feedback capture that keep it trustworthy once real users arrive.
-        </p>
-
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; background: #E4DED2; border: 1px solid #E4DED2; border-radius: 6px; overflow: hidden;">
-          <div style="background: #FBF9F5; padding: 28px 26px;">
-            <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: #7A6A55; margin-bottom: 12px;">Platform depth</div>
-            <p style="font-size: 15px; line-height: 1.55; color: #45505C; margin: 0;">Certified Azure solutions architecture, plus hands-on delivery on Azure AI Foundry, Claude, and OpenAI models.</p>
-          </div>
-          <div style="background: #FBF9F5; padding: 28px 26px;">
-            <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: #7A6A55; margin-bottom: 12px;">Production experience</div>
-            <p style="font-size: 15px; line-height: 1.55; color: #45505C; margin: 0;">Multi-agent systems live in production, not slideware &mdash; designed around the failure modes pilots expose.</p>
-          </div>
-          <div style="background: #FBF9F5; padding: 28px 26px;">
-            <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: #7A6A55; margin-bottom: 12px;">Enterprise fluency</div>
-            <p style="font-size: 15px; line-height: 1.55; color: #45505C; margin: 0;">Comfortable in front of security, procurement, and finance &mdash; the reviews where most AI projects actually die.</p>
-          </div>
-          <div style="background: #FBF9F5; padding: 28px 26px;">
-            <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: #7A6A55; margin-bottom: 12px;">Team enablement</div>
-            <p style="font-size: 15px; line-height: 1.55; color: #45505C; margin: 0;">A track record of coaching architects and engineers through AI adoption across the delivery lifecycle.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section id="contact" style="border-top: 1px solid #E4DED2; background: #F5F2EC;">
-    <div style="max-width: 1160px; margin: 0 auto; padding: 88px 40px 92px; display: grid; grid-template-columns: 1fr auto; gap: 64px; align-items: center;">
-      <div>
-        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #7A6A55; margin-bottom: 18px;">04 — Contact</div>
-        <h2 style="font-family: 'Source Serif 4', Georgia, serif; font-size: 44px; line-height: 1.1; font-weight: 400; margin: 0 0 20px; letter-spacing: -0.015em; text-wrap: pretty;">Bring us the problem you can't sequence.</h2>
-        <p style="font-size: 17px; line-height: 1.65; color: #6B7580; margin: 0; max-width: 36em;">
-          A short note about what you're trying to build — or what stalled — is enough to start. First conversations are free and usually clarifying either way.
-        </p>
-      </div>
-      <a href="mailto:info@automaconsulting.com" style="display: inline-flex; flex-direction: column; gap: 8px; background: #0F1A24; color: #FBF9F5; padding: 28px 36px; border-radius: 6px; min-width: 320px;" style-hover="background: #C77733;">
-        <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: #9A8E7C;">Email</span>
-        <span style="font-family: 'Source Serif 4', Georgia, serif; font-size: 24px; color: #FBF9F5;">info@automaconsulting.com</span>
+      <a class="mailcard" href="mailto:info@automaconsulting.com">
+        <span class="mono" style="font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: #9A8E7C;"><span data-lang="en">Email</span><span data-lang="es">Correo</span></span>
+        <span class="addr" style="font-family: 'Source Serif 4', Georgia, serif; font-size: 24px;">info@automaconsulting.com</span>
       </a>
     </div>
   </section>
 
-  <footer style="background: #0F1A24; color: #A9B3BE;">
-    <div style="max-width: 1160px; margin: 0 auto; padding: 56px 40px; display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 48px; align-items: start;">
+  <footer class="site-footer">
+    <div class="wrap cols">
       <div>
         <div style="width: 64px; height: 64px; border-radius: 8px; background: #F4EFE6; display: flex; align-items: center; justify-content: center; margin-bottom: 18px; overflow: hidden;">
           <img src="assets/automa-mark.png" alt="Automa Consulting" style="width: 58px; height: 58px; display: block; object-fit: contain;" />
         </div>
-        <p style="font-size: 14px; line-height: 1.6; margin: 0; max-width: 26em;">AI architecture and automation consulting for organizations that have to run what they build.</p>
+        <p style="font-size: 14px; line-height: 1.6; margin: 0; max-width: 26em;"><span data-lang="en">AI architecture, automation and AI solution delivery for organizations that have to run what they build.</span><span data-lang="es">Arquitectura de IA, automatización y entrega de soluciones con IA para organizaciones que deben operar lo que construyen.</span></p>
       </div>
-      <div style="display: grid; gap: 12px; font-size: 14px;">
-        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: #7E8894; margin-bottom: 4px;">Site</div>
-        <a href="#services" style="color: #A9B3BE;">Services</a>
-        <a href="#method" style="color: #A9B3BE;">How we work</a>
-        <a href="#about" style="color: #A9B3BE;">Background</a>
+      <div class="col">
+        <div class="h"><span data-lang="en">Site</span><span data-lang="es">Sitio</span></div>
+        <a href="#delivery"><span data-lang="en">Solution Delivery</span><span data-lang="es">Entrega de soluciones</span></a>
+        <a href="#services"><span data-lang="en">Consulting</span><span data-lang="es">Consultoría</span></a>
+        <a href="#method"><span data-lang="en">How we work</span><span data-lang="es">Cómo trabajamos</span></a>
+        <a href="#about"><span data-lang="en">Background</span><span data-lang="es">Trayectoria</span></a>
+        <a href="?intro"><span data-lang="en">Replay intro</span><span data-lang="es">Ver la intro de nuevo</span></a>
       </div>
-      <div style="display: grid; gap: 12px; font-size: 14px;">
-        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: #7E8894; margin-bottom: 4px;">Contact</div>
+      <div class="col">
+        <div class="h"><span data-lang="en">Contact</span><span data-lang="es">Contacto</span></div>
         <a href="mailto:info@automaconsulting.com" style="color: #E8964A;">info@automaconsulting.com</a>
         <span style="color: #7E8894;">Minneapolis–St. Paul, Minnesota</span>
       </div>
     </div>
     <div style="border-top: 1px solid #1D2833;">
-      <div style="max-width: 1160px; margin: 0 auto; padding: 22px 40px; font-size: 13px; color: #6E7883;">© 2026 Automa Consulting. All rights reserved.</div>
+      <div class="wrap" style="padding-top: 22px; padding-bottom: 22px; font-size: 13px; color: #6E7883;"><span data-lang="en">© 2026 Automa Consulting. All rights reserved.</span><span data-lang="es">© 2026 Automa Consulting. Todos los derechos reservados.</span></div>
     </div>
   </footer>
 </div>
 
 </x-dc>
+<script>
+/* Language switch: toggles <html lang>; CSS shows the matching text. Also updates title, description and the intro buttons. */
+(function(){
+  var META={en:{t:'Automa Consulting — AI architecture and AI solution delivery',d:'AI architecture, automation and AI delivery teams that plan, build, test and ship your software, with you approving every step that matters.'},
+            es:{t:'Automa Consulting — Arquitectura de IA y entrega de soluciones con IA',d:'Arquitectura de IA, automatización y equipos de entrega con IA que planifican, construyen, prueban y lanzan su software, con su aprobación en cada paso importante.'}};
+  function apply(L){
+    var root=document.documentElement;root.lang=L;
+    if(document.title!==META[L].t)document.title=META[L].t;
+    var m=document.querySelector('meta[name="description"]');if(m)m.setAttribute('content',META[L].d);
+    var bs=document.querySelectorAll('[data-set-lang]');for(var i=0;i<bs.length;i++)bs[i].setAttribute('aria-pressed',String(bs[i].getAttribute('data-set-lang')===L));
+    if(window.automaIntroLang)window.automaIntroLang(L);
+  }
+  window.automaSetLang=function(L,save){if(L!=='en'&&L!=='es')return;if(save){try{localStorage.setItem('automa-lang',L)}catch(e){}}apply(L);};
+  document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-set-lang]');if(!b)return;e.preventDefault();window.automaSetLang(b.getAttribute('data-set-lang'),true);});
+  apply(document.documentElement.lang==='es'?'es':'en');
+  /* the page is rendered after this script; re-apply once its header and title exist */
+  var n=0,t=setInterval(function(){apply(document.documentElement.lang==='es'?'es':'en');if(++n>20)clearInterval(t);},150);
+})();
+</script>
 <script type="text/x-dc" data-dc-script data-props="{}"></script>
 </body>
 </html>
