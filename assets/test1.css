@@ -188,3 +188,10 @@ html.pitch-open, html.pitch-open body { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) {
   .tour-shot, .pslide, .stn, #pitch.open, .story-log li.new { transition: none !important; animation: none !important; }
 }
+
+/* the loop back into the backlog */
+.stn.loop { border-style: dashed; border-color: #D6CEC0; background: #FFFFFF; }
+.stn.loop .dot { font-size: 14px; background: #F6E1CB; color: #A2541C; }
+.stn.loop.on { background: #0F1A24; border-style: solid; } .stn.loop.on .dot { background: #E8964A; color: #0F1A24; }
+.story-log li.loop .k { background: #F6E1CB; color: #A2541C; }
+.story-log li.loop.new .k { background: #E8964A; color: #0F1A24; }
