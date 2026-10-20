@@ -46,6 +46,17 @@ try{var q=/[?&]intro\b/.test(location.search);if(!q&&(sessionStorage.getItem('au
     <source src="assets/automa-intro.mp4" type="video/mp4">
     <source src="assets/automa-intro.webm" type="video/webm">
   </video>
+  <script>
+  /* Visitors whose device is set to Colombia's time zone see the cut with the framed photo on the desk.
+     Preview either cut with ?intro=co or ?intro=std. */
+  (function(){try{
+    var m=/[?&]intro=(co|std)\b/.exec(location.search),co=m?m[1]==='co':Intl.DateTimeFormat().resolvedOptions().timeZone==='America/Bogota';
+    if(!co)return;
+    var v=document.getElementById('automa-intro-video'),s=v.querySelectorAll('source');
+    v.poster='assets/intro-alt/automa-intro-photo-poster.jpg';
+    s[0].src='assets/intro-alt/automa-intro-photo.mp4';s[1].src='assets/intro-alt/automa-intro-photo.webm';v.load();
+  }catch(e){}})();
+  </script>
   <button type="button" class="automa-intro-play" id="automa-intro-play"><span class="ring"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.2v11.6c0 .6.7 1 1.2.7l9-5.8a.8.8 0 0 0 0-1.4l-9-5.8C4.7 1.2 4 1.6 4 2.2z"/></svg></span><span><span data-lang="en">Play intro</span><span data-lang="es">Ver la intro</span><small><span data-lang="en">with sound · 34 s</span><span data-lang="es">con sonido · 34 s</span></small></span></button>
   <div class="automa-intro-bar">
     <button type="button" class="automa-intro-btn" id="automa-intro-sound" aria-pressed="false"></button>
