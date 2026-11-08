@@ -117,7 +117,7 @@ html.pitch-open, html.pitch-open body { overflow: hidden; }
 .prole { border: 1px solid #2C3A47; border-radius: 8px; padding: 18px; }
 .prole h3 { font-family: "Source Serif 4", Georgia, serif; font-size: 19px; font-weight: 600; margin: 0 0 6px; color: #FBF9F5; }
 .prole p { margin: 0; font-size: 14px; line-height: 1.45; color: #A9B3BE; }
-.prole.owner { background: #E8964A; border-color: #E8964A; } .prole.owner h3, .prole.owner p { color: #0F1A24; }
+.prole.owner { background: #E8964A; border-color: #E8964A; grid-column: 1 / -1; } .prole.owner h3, .prole.owner p { color: #0F1A24; }
 .prole.rev { border-color: #3B6E92; background: rgba(47, 110, 154, .14); } .prole.rev h3 { color: #CFE3F1; }
 .pgroups { display: grid; grid-template-columns: 2fr 6fr; gap: 28px; margin: 8px 0 26px; }
 .pgroup.g1 { border-left: 1px dashed #2C3A47; padding-left: 24px; }
